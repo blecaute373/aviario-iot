@@ -1,0 +1,120 @@
+
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(5,7,12,0.75); backdrop-filter: blur(4px);
+            display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-box {
+            background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px;
+            padding: 28px; width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .modal-box h2 { font-size: 1.1rem; margin-bottom: 4px; }
+        .modal-box p.hint { color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 18px; }
+        .modal-box label { display: block; font-size: 0.78rem; color: var(--text-secondary); margin: 14px 0 6px; }
+        .modal-box input {
+            width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--border-color);
+            background: var(--bg-card); color: var(--text-primary); font-family: var(--font-mono); font-size: 0.9rem;
+        }
+        .modal-box input:focus { outline: none; border-color: var(--accent-blue); }
+        .modal-actions { display: flex; gap: 10px; margin-top: 22px; }
+        .modal-actions button {
+            flex: 1; padding: 11px; border-radius: 10px; border: none; cursor: pointer;
+            font-weight: 600; font-size: 0.85rem; transition: opacity 0.2s;
+        }
+        .modal-btn-primary { background: var(--accent-blue); color: #05131f; }
+        .modal-btn-secondary { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-color) !important; }
+        .modal-actions button:hover { opacity: 0.85; }
+        .modal-error { color: var(--accent-red); font-size: 0.78rem; margin-top: 10px; min-height: 14px; }
+
+        #loginScreen {
+            position: fixed; inset: 0; z-index: 2000; overflow: hidden;
+            display: flex; align-items: center; justify-content: center; padding: 20px;
+            background: radial-gradient(circle at 15% 15%, #ff5a3c 0%, transparent 45%),
+                        radial-gradient(circle at 85% 20%, #7b2ff7 0%, transparent 45%),
+                        radial-gradient(circle at 50% 90%, #0ea5e9 0%, transparent 50%),
+                        linear-gradient(135deg, #0a0e17 0%, #131a2b 55%, #0a0e17 100%);
+        }
+        #loginScreen.hidden { display: none; }
+        #loginScreen::before {
+            content: ''; position: absolute; inset: 0; opacity: 0.08; pointer-events: none;
+            background-image: radial-gradient(rgba(255,255,255,0.5) 1px, transparent 1px);
+            background-size: 26px 26px;
+        }
+        .login-box {
+            position: relative; z-index: 1;
+            width: 100%; max-width: 380px;
+            background: linear-gradient(180deg, rgba(30,36,54,0.85), rgba(20,25,38,0.85));
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 22px; padding: 40px 32px; text-align: center;
+            backdrop-filter: blur(18px);
+            box-shadow: 0 25px 70px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04) inset,
+                        0 0 60px rgba(220,38,38,0.08);
+            animation: loginPop 0.45s cubic-bezier(0.16,1,0.3,1);
+        }
+        @keyframes loginPop { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .login-box .aerem-logo {
+            height: 72px; width: auto; margin-bottom: 16px;
+            filter: drop-shadow(0 4px 18px rgba(220,38,38,0.45));
+        }
+        .login-box h1 {
+            font-size: 1.4rem; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ff8a65, #ff5a3c 45%, #ffb199);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .login-box p.hint { color: var(--text-secondary); font-size: 0.82rem; margin-bottom: 26px; }
+        .login-box label {
+            display: block; font-size: 0.72rem; color: #ffb199; margin: 14px 0 6px; text-align: left;
+            font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+        }
+        .login-box input {
+            width: 100%; padding: 13px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.05); color: var(--text-primary); font-size: 0.92rem;
+            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+        }
+        .login-box input:focus {
+            outline: none; border-color: #ff5a3c; background: rgba(255,255,255,0.08);
+            box-shadow: 0 0 0 4px rgba(255,90,60,0.15);
+        }
+        .login-box button {
+            width: 100%; margin-top: 26px; padding: 13px; border-radius: 12px; border: none;
+            background: linear-gradient(135deg, #ff6b4a, #dc2626); color: #fff; font-weight: 700;
+            cursor: pointer; font-size: 0.92rem; letter-spacing: 0.01em;
+            box-shadow: 0 8px 24px rgba(220,38,38,0.35);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .login-box button:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(220,38,38,0.45); }
+        .login-box button:active { transform: translateY(0); }
+        .login-error { color: #ff8a80; font-size: 0.78rem; margin-top: 12px; min-height: 14px; }
+        .login-toggle {
+            margin-top: 18px; font-size: 0.78rem; color: var(--text-secondary); cursor: pointer;
+            text-decoration: none; border-bottom: 1px dashed rgba(255,255,255,0.25); display: inline-block;
+            padding-bottom: 1px; transition: color 0.2s, border-color 0.2s;
+        }
+        .login-toggle:hover { color: #ff8a65; border-color: #ff8a65; }
+
+        .mode-toggle {
+            display: flex; align-items: center; gap: 0;
+            background: var(--bg-primary); border-radius: 10px;
+            border: 1px solid var(--border-bright); overflow: hidden;
+        }
+        .mode-toggle-btn {
+            padding: 7px 14px; font-size: 0.78rem; font-weight: 600;
+            cursor: pointer; border: none; background: transparent;
+            color: var(--text-secondary); font-family: var(--font-body);
+            letter-spacing: 0.04em; transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+        }
+        .mode-toggle-btn.active-sim {
+            background: rgba(167,139,250,0.15); color: var(--accent-purple);
+        }
+        .mode-toggle-btn.active-real {
+            background: rgba(16,232,120,0.12); color: var(--accent-green);
+        }
+        .mode-toggle-btn i { font-size: 0.8rem; }
+        .mode-divider { width: 1px; height: 28px; background: var(--border-bright); }
+        .baap-logo {
+            height: 65px; width: auto; object-fit: contain;
+            border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .baap-logo:hover { transform: scale(1.05); box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+

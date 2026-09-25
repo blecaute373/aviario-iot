@@ -1,0 +1,13 @@
+{
+  "name": "aviario-iot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Aviário IoT (AEREM PLS) — firmware LoRa ESP32/ATtiny85, backend Telegraf/InfluxDB/Grafana, supervisão Node-RED e dashboard web",
+  "license": "UNLICENSED",
+  "scripts": {
+    "serve": "node scripts/serve.js",
+    "check": "node --check public/js/config.js && node --check public/js/auth.js && node --check public/js/zoom.js && node --check public/js/mock.js && node --check public/js/dashboard.js && node --check scripts/serve.js && node --check test/public.test.js",
+    "test": "node --test",
+    "audit": "npm audit --audit-level=high"
+  }
+}

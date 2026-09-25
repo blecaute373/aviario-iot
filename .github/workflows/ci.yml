@@ -1,0 +1,31 @@
+name: CI — Check/Teste/Audit
+
+# Pipeline mínimo: checagem de sintaxe → testes → auditoria de dependências.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Instalar (build reprodutível via lockfile)
+        run: npm ci
+
+      - name: Syntax check (fail-fast)
+        run: npm run check
+
+      - name: Testes
+        run: npm test
+
+      - name: Audit de dependências (high+)
+        run: npm run audit

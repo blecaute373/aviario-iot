@@ -1,0 +1,9 @@
+version: 2
+updates:
+  # Dependência desatualizada é fonte comum de vulnerabilidade real —
+  # atualização contínua via PR semanal + CI.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

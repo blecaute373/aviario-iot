@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEREM PLS - Sistema de Controle Ambiental</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/login.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+
+<div id="loginScreen">
+    <div class="login-box">
+        <img src="assets/logo-aerem.png" alt="AEREM" class="aerem-logo">
+        <h1 id="loginTitle">AEREM PLS</h1>
+        <p class="hint" id="loginHint">Entre com suas credenciais para continuar</p>
+        <label for="loginUser">Usuário</label>
+        <input type="text" id="loginUser" autocomplete="username" placeholder="usuário">
+        <label for="loginPass">Senha</label>
+        <input type="password" id="loginPass" autocomplete="current-password" placeholder="senha">
+        <button id="loginBtn" onclick="handleLoginSubmit()">Entrar</button>
+        <div class="login-error" id="loginError"></div>
+        <div class="login-toggle" id="loginToggle" onclick="toggleLoginMode()"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="settingsModal">
+    <div class="modal-box">
+        <h2>Configurações de Conexão</h2>
+        <p class="hint">Defina o endereço IP do broker/ESP32 na rede local.</p>
+        <label for="brokerIpInput">Endereço IP do Broker</label>
+        <input type="text" id="brokerIpInput" placeholder="192.168.0.5">
+        <label for="brokerPortInput">Porta do Broker</label>
+        <input type="text" id="brokerPortInput" placeholder="80">
+        <div class="modal-error" id="settingsError"></div>
+        <div class="modal-actions">
+            <button class="modal-btn-secondary" onclick="closeSettings()">Cancelar</button>
+            <button class="modal-btn-primary" onclick="saveSettings()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div class="zoom-wrapper" id="zoomWrapper">
+<div class="zoom-content" id="zoomContent">
+<div class="container">
+
+    <header class="header">
+        <div class="header-brand">
+            <img src="assets/logo-aerem.png" alt="AEREM" class="aerem-logo">
+            <div class="brand-divider"></div>
+            <div class="brand-title">
+                <h1>AEREM PLS</h1>
+                <span>Precision Livestock System</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="settings-btn" id="btnSettings" onclick="openSettings()" title="Configurações"><i class="fa-solid fa-gear"></i></button>
+            <button class="settings-btn" id="btnLogout" onclick="logout()" title="Sair"><i class="fa-solid fa-right-from-bracket"></i></button>
+            <div class="mode-toggle" title="Alternar modo de operação">
+                <button class="mode-toggle-btn active-sim" id="btnSimulacao" onclick="setMode(true)">
+                    <i class="fa-solid fa-flask"></i> Simulação
+                </button>
+                <div class="mode-divider"></div>
+                <button class="mode-toggle-btn" id="btnReal" onclick="setMode(false)">
+                    <i class="fa-solid fa-tower-broadcast"></i> Real
+                </button>
+            </div>
+            <img src="assets/logo-baap.png" alt="baap." class="baap-logo">
+            <div class="status-badge simulation" id="connectionStatus">
+                <span class="status-dot"></span>
+                <span>Simulação</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="simulation-banner" id="simulationBanner">
+        🧪 <strong>Modo Simulação:</strong> Dados gerados automaticamente para demonstração. Conecte ao ESP32 para dados reais.
+    </div>
+
+    <div class="alert-banner" id="alertBanner">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span id="alertText">Parâmetros fora do limite!</span>
+    </div>
+
+    <div class="section-title"><i class="fa-solid fa-satellite-dish"></i> Sensores</div>
+    <div class="cards-grid">
+        <div class="sensor-card nh3">
+            <div class="icon">💨</div>
+            <div class="label">Amônia (NH₃)</div>
+            <div class="value"><span id="nh3Value">--</span><span class="unit"> ppm</span></div>
+            <div class="progress-bar"><div class="fill" id="nh3Progress" style="width:0%"></div></div>
+        </div>
+        <div class="sensor-card umidade">
+            <div class="icon">💧</div>
+            <div class="label">Umidade da Cama</div>
+            <div class="value"><span id="umidadeValue">--</span><span class="unit"> %</span></div>
+            <div class="progress-bar"><div class="fill" id="umidadeProgress" style="width:0%"></div></div>
+        </div>
+        <div class="sensor-card temperatura">
+            <div class="icon">🌡️</div>
+            <div class="label">Temperatura</div>
+            <div class="value"><span id="temperaturaValue">--</span><span class="unit"> °C</span></div>
+            <div class="progress-bar"><div class="fill" id="temperaturaProgress" style="width:0%"></div></div>
+        </div>
+    </div>
+
+    <div class="section-title"><i class="fa-solid fa-bolt"></i> Atuadores</div>
+    <div class="atuadores-grid">
+        <div class="atuador-card ventilador" data-tipo="ventilador">
+            <div class="atuador-icon-ring"><i class="fa-solid fa-fan"></i></div>
+            <div class="speed-bars"><span></span><span></span><span></span><span></span><span></span></div>
+            <div class="label" style="margin-top:10px">Ventiladores</div>
+            <div class="atuador-status">
+                <div class="atuador-chip chip-off" id="ventiladorIndicator">
+                    <span class="chip-dot"></span><span id="ventiladorStatus">Desligado</span>
+                </div>
+            </div>
+            <div class="atuador-buttons">
+                <button class="btn btn-on" onclick="controlarAtuador('ventilador','on')" data-tip="Ligar manualmente">ON</button>
+                <button class="btn btn-off" onclick="controlarAtuador('ventilador','off')" data-tip="Desligar manualmente">OFF</button>
+                <button class="btn btn-auto active" onclick="controlarAtuador('ventilador','auto')" data-tip="Controle automático">AUTO</button>
+            </div>
+            <div class="atuador-modo" id="ventiladorModo">Modo: Automático</div>
+        </div>
+
+        <div class="atuador-card aspersor" data-tipo="aspersor">
+            <div class="spray-drops"><span></span><span></span><span></span><span></span><span></span></div>
+            <div class="atuador-icon-ring"><i class="fa-solid fa-droplet"></i></div>
+            <div class="label" style="margin-top:10px">Aspersores</div>
+            <div class="atuador-status">
+                <div class="atuador-chip chip-off" id="aspersorIndicator">
+                    <span class="chip-dot"></span><span id="aspersorStatus">Desligado</span>
+                </div>
+            </div>
+            <div class="atuador-buttons">
+                <button class="btn btn-on" onclick="controlarAtuador('aspersor','on')" data-tip="Ligar aspersão manual">ON</button>
+                <button class="btn btn-off" onclick="controlarAtuador('aspersor','off')" data-tip="Desligar aspersores">OFF</button>
+                <button class="btn btn-auto active" onclick="controlarAtuador('aspersor','auto')" data-tip="Controle automático">AUTO</button>
+            </div>
+            <div class="atuador-modo" id="aspersorModo">Modo: Automático</div>
+        </div>
+
+        <div class="atuador-card exaustor" data-tipo="exaustor">
+            <div class="atuador-icon-ring"><i class="fa-solid fa-wind"></i></div>
+            <div class="speed-bars"><span></span><span></span><span></span><span></span><span></span></div>
+            <div class="label" style="margin-top:10px">Exaustores</div>
+            <div class="atuador-status">
+                <div class="atuador-chip chip-off" id="exaustorIndicator">
+                    <span class="chip-dot"></span><span id="exaustorStatus">Desligado</span>
+                </div>
+            </div>
+            <div class="atuador-buttons">
+                <button class="btn btn-on" onclick="controlarAtuador('exaustor','on')" data-tip="Ligar exaustão manual">ON</button>
+                <button class="btn btn-off" onclick="controlarAtuador('exaustor','off')" data-tip="Desligar exaustores">OFF</button>
+                <button class="btn btn-auto active" onclick="controlarAtuador('exaustor','auto')" data-tip="Controle automático">AUTO</button>
+            </div>
+            <div class="atuador-modo" id="exaustorModo">Modo: Automático</div>
+        </div>
+
+        <div class="atuador-card cortina" data-tipo="cortina">
+            <div class="atuador-icon-ring"><i class="fa-solid fa-table-columns"></i></div>
+            <div class="label" style="margin-top:14px">Cortinas</div>
+            <div class="atuador-status">
+                <div class="atuador-chip chip-off" id="cortinaIndicator">
+                    <span class="chip-dot"></span><span id="cortinaStatus">Fechada</span>
+                </div>
+            </div>
+            <div class="atuador-buttons">
+                <button class="btn btn-on" onclick="controlarAtuador('cortina','on')" data-tip="Abrir cortinas">Abrir</button>
+                <button class="btn btn-off" onclick="controlarAtuador('cortina','off')" data-tip="Fechar cortinas">Fechar</button>
+                <button class="btn btn-auto active" onclick="controlarAtuador('cortina','auto')" data-tip="Controle automático">AUTO</button>
+            </div>
+            <div class="atuador-modo" id="cortinaModo">Modo: Automático</div>
+        </div>
+    </div>
+
+    <div class="chart-section">
+        <div class="chart-header">
+            <h2 class="chart-title"><i class="fa-solid fa-chart-line" style="color:var(--accent-blue)"></i> Histórico de Leituras</h2>
+            <div class="period-buttons">
+                <button class="period-btn" data-period="1h">1h</button>
+                <button class="period-btn active" data-period="6h">6h</button>
+                <button class="period-btn" data-period="24h">24h</button>
+                <button class="period-btn" data-period="7d">7 dias</button>
+            </div>
+        </div>
+        <div class="chart-container">
+            <canvas id="mainChart"></canvas>
+            <div class="loading hidden" id="chartLoading"><div class="spinner"></div></div>
+        </div>
+        <div class="chart-legend">
+            <div class="legend-item"><div class="legend-color" style="background:#fbbf24"></div><span>NH₃ (ppm)</span></div>
+            <div class="legend-item"><div class="legend-color" style="background:#38bdf8"></div><span>Umidade (%)</span></div>
+            <div class="legend-item"><div class="legend-color" style="background:#ff5252"></div><span>Temperatura (°C)</span></div>
+            <div class="legend-item"><div class="legend-color" style="background:rgba(255,255,255,0.2);border:1px dashed #555"></div><span>Limites</span></div>
+        </div>
+    </div>
+
+    <div class="stats-footer">
+        <div class="stat-item"><div class="stat-value" id="nosAtivos">-</div><div class="stat-label">📡dispositivos</div></div>
+        <div class="stat-item"><div class="stat-value" id="bateria">-</div><div class="stat-label">🔋 Bateria</div></div>
+        <div class="stat-item"><div class="stat-value" id="rssi">-</div><div class="stat-label">📶 RSSI</div></div>
+        <div class="stat-item"><div class="stat-value" id="pacotes">-</div><div class="stat-label">📦 Pacotes</div></div>
+        <div class="stat-item"><div class="stat-value" id="ultimaLeitura">-</div><div class="stat-label">⏱️ Última Leitura</div></div>
+    </div>
+
+</div>
+</div>
+</div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/zoom.js"></script>
+    <script src="js/mock.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
