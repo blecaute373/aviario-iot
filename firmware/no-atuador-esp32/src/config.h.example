@@ -1,0 +1,20 @@
+/*
+ * config.h.example — Nó Atuador ESP32 (Aviário)
+ *
+ * Copie este arquivo para "config.h" (mesma pasta) e preencha com os
+ * dados do seu ambiente:
+ *
+ *   cp src/config.h.example src/config.h      # Git Bash / WSL
+ *   copy src\config.h.example src\config.h    # PowerShell / CMD
+ *
+ * O arquivo config.h NÃO é versionado (está no .gitignore).
+ * Nunca commite credenciais reais.
+ */
+#pragma once
+
+// Rede WiFi local
+#define WIFI_SSID   "SUA_REDE"
+#define WIFI_PASS   "SUA_SENHA"
+
+// IP do broker Mosquitto na rede local
+#define MQTT_BROKER "192.168.0.3"
