@@ -129,7 +129,7 @@ O dashboard é **estático** (sem build): o `vercel.json` publica a pasta `publi
 
 ## URLs de Produção
 
-- **Dashboard:** `https://aerem-pls.vercel.app` _(preencher após o deploy)_
+- **Dashboard:** https://aerem-pls.vercel.app (produção — projeto `aerem-pls` na Vercel)
 
 ## Arquitetura / Decisões
 
@@ -184,7 +184,7 @@ Detalhes completos em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) e [`docs/PROT
 
 ## Status atual
 
-- Dashboard web **AEREM PLS** em `public/` (modos Simulação/Real, login local, gráfico com limites) — deploy no Vercel.
+- Dashboard web **AEREM PLS** publicado em https://aerem-pls.vercel.app (modos Simulação/Real, login local, gráfico com limites).
 - Ver [`docs/PROXIMOS_PASSOS.md`](docs/PROXIMOS_PASSOS.md) para o estado mais recente e itens em aberto.
 
 ## Documento técnico formal

@@ -19,10 +19,11 @@ Thumbs.db
 
 # Segredos / configuração local
 .env
+.env*
 *.local
 secrets.h
 
-# Firmware: copie config.h.example → config.h e edite (nunca versionar credenciais)
+# Firmware: copie config.h.example para config.h e edite (nunca versionar credenciais)
 config.h
 *.pem
 *.key

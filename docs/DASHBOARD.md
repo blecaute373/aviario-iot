@@ -62,6 +62,8 @@ npx vercel --prod  # na raiz do repositório
 
 Ou importe o repositório em [vercel.com/new](https://vercel.com/new) (Framework: *Other*).
 
+**Produção:** https://aerem-pls.vercel.app (projeto `aerem-pls`, deploy atual do `public/`).
+
 > ⚠️ Fora da rede local (ex.: no Vercel), o modo **Real** não conecta — use **Simulação**.
 
 ## Segurança
