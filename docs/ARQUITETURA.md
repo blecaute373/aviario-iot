@@ -43,7 +43,10 @@ MQTT (Mosquitto) → Telegraf / Node-RED → InfluxDB 1.x (InfluxQL) → Grafana
 
 ## Dashboard web (AEREM PLS) — `public/`
 
-- Frontend estático (HTML/CSS/JS vanilla + Chart.js) com dois modos: **Simulação** (dados gerados no navegador) e **Real** (consulta HTTP ao ESP32/broker na rede local: `/api/status`, `/api/dados`, `/api/atuador`).
+- Frontend estático (HTML/CSS/JS vanilla + Chart.js), design tokens próprios e **duas páginas**:
+  - `index.html` — **consola de supervisão** (somente leitura): sensores, estado dos atuadores, histórico e enlace LoRa;
+  - `admin.html` — **painel administrativo**: controle manual dos 4 atuadores e chave mestra do Modo Automático.
+- Dois modos: **Simulação** (dados gerados no navegador) e **Real** (consulta HTTP ao ESP32/broker na rede local: `/api/status`, `/api/dados`, `/api/atuador`, `/api/modo-auto`).
 - Login local por navegador (demonstração), configuração de IP/porta do broker via modal (localStorage).
 - Publicado como site estático (Vercel); fora da rede local permanece em Simulação. Detalhes e contrato da API: [`DASHBOARD.md`](DASHBOARD.md).
 

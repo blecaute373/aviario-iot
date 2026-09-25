@@ -1,21 +1,26 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AVIÁRIO IoT — Sistema de Supervisão e Controle Ambiental</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/tokens.css">
-    <link rel="stylesheet" href="css/base.css">
-    <link rel="stylesheet" href="css/login.css">
-    <link rel="stylesheet" href="css/dashboard.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#070b13">
+<meta name="description" content="AVIÁRIO IoT — consola de supervisão ambiental do aviário: temperatura, umidade, pressão, amônia, atuadores e enlace LoRa.">
+<title>AVIÁRIO IoT · Consola de Supervisão</title>
+<script>(function(){try{if(sessionStorage.getItem('aerem_logged_in')==='1'){document.documentElement.classList.add('aerem-logged')}}catch(e){}})();</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/login.css">
+<link rel="stylesheet" href="css/dashboard.css">
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 </head>
 <body>
 
+<!-- ═══════════ TELA DE ACESSO (login/registro local) ═══════════ -->
 <div id="loginScreen">
     <div class="login-box">
         <img src="assets/logo-aerem.png" alt="AEREM" class="aerem-logo">
@@ -31,11 +36,12 @@
     </div>
 </div>
 
+<!-- ═══════════ MODAL DE CONFIGURAÇÃO DE REDE ═══════════ -->
 <div class="modal-overlay" id="settingsModal">
     <div class="modal-box">
         <h2>Configurações de Conexão</h2>
-        <p class="hint">Defina o endereço IP e porta do broker/gateway na rede local.</p>
-        <label for="brokerIpInput">Endereço IP do Gateway / Broker</label>
+        <p class="hint">Endereço IP e porta do gateway/Node-RED na rede local.</p>
+        <label for="brokerIpInput">IP do Gateway / Broker</label>
         <input type="text" id="brokerIpInput" placeholder="192.168.0.5">
         <label for="brokerPortInput">Porta HTTP</label>
         <input type="text" id="brokerPortInput" placeholder="80">
@@ -47,284 +53,281 @@
     </div>
 </div>
 
+<a class="skip" href="#kpiGrid">Saltar para sensores</a>
+
 <div class="zoom-wrapper" id="zoomWrapper">
 <div class="zoom-content" id="zoomContent">
-<div class="container">
+<div class="page">
 
-    <!-- HEADER PRINCIPAL -->
-    <header class="header">
-        <div class="header-brand">
-            <img src="assets/logo-aerem.png" alt="AEREM" class="aerem-logo">
-            <div class="brand-divider"></div>
-            <div class="brand-title">
-                <h1>AVIÁRIO IoT</h1>
-                <span>AVIÁRIO Nº 01 · Supervisão Operacional</span>
+    <!-- ═══════════ TOPBAR ═══════════ -->
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-mark"><img src="assets/logo-aerem.png" alt="AEREM"></div>
+            <div class="brand-text">
+                <div class="brand-name">AVIÁRIO IoT</div>
+                <div class="brand-sub">Aviário Nº 01 · Consola de Supervisão</div>
             </div>
         </div>
-        <div class="header-right">
-            <button class="settings-btn" id="btnSettings" onclick="openSettings()" title="Configurações de Rede"><i class="fa-solid fa-gear"></i></button>
-            <button class="settings-btn" id="btnLogout" onclick="logout()" title="Encerrar Sessão"><i class="fa-solid fa-right-from-bracket"></i></button>
+        <div class="topbar-right">
+            <div class="status-pill loading" id="statusPill" role="status" aria-live="polite">
+                <span class="s-dot" aria-hidden="true"></span><span id="statusText">A ligar…</span>
+            </div>
+            <div class="refresh-info" id="refreshInfo">—</div>
             <div class="mode-toggle" title="Alternar modo de operação">
-                <button class="mode-toggle-btn active-sim" id="btnSimulacao" onclick="setMode(true)">
+                <button class="mode-toggle-btn active-sim" id="btnSimulacao" onclick="setModo(true)">
                     <i class="fa-solid fa-flask"></i> Simulação
                 </button>
-                <div class="mode-divider"></div>
-                <button class="mode-toggle-btn" id="btnReal" onclick="setMode(false)">
+                <button class="mode-toggle-btn" id="btnReal" onclick="setModo(false)">
                     <i class="fa-solid fa-tower-broadcast"></i> Real
                 </button>
             </div>
-            <img src="assets/logo-baap.png" alt="BAAP" class="baap-logo">
-            <div class="status-badge simulation" id="connectionStatus">
-                <span class="status-dot"></span>
-                <span>Simulação</span>
-            </div>
+            <button class="btn-ghost icon-only" onclick="openSettings()" title="Configurações de rede"><i class="fa-solid fa-gear"></i></button>
+            <a class="btn-ghost brand" href="admin.html" title="Painel administrativo — controle dos atuadores"><i class="fa-solid fa-sliders"></i> Painel de Controle</a>
+            <span class="auth-user" id="authUser"></span>
+            <button class="btn-ghost danger" onclick="logout()">Sair</button>
         </div>
+        <div class="countdown-wrap" aria-hidden="true"><div class="countdown-fill" id="countdownBar" style="width:100%"></div></div>
     </header>
-    <!-- BANNER DE STATUS GERAL & MODO AUTOMÁTICO MESTRE -->
-    <div class="system-banner">
-        <div class="system-banner-left">
-            <div class="system-indicator"></div>
-            <div>
-                <div class="system-info-title">SUPERVISÓRIO CENTRAL · GALPÃO PRINCIPAL</div>
-                <div class="system-info-sub" id="txtModoAuto">Controle Manual Habilitado</div>
-            </div>
-        </div>
-        <div class="auto-master-control">
-            <span class="auto-master-label">MODO AUTOMÁTICO</span>
-            <button class="auto-master-btn is-inactive" id="btnModoAuto" onclick="toggleModoAutomatico()">DESATIVADO</button>
-        </div>
-    </div>
 
-    <!-- SEÇÃO: SENSORES AMBIENTAIS -->
-    <div class="section-header">
-        <div class="section-title"><i class="fa-solid fa-cloud-sun-rain" style="color:var(--umid-accent)"></i> Monitoramento Ambiental</div>
-        <div class="section-badge">4 SENSORES ATIVOS</div>
-    </div>
+    <!-- ═══════════ SENSORES ═══════════ -->
+    <div class="section-label" id="sensoresLabel">🌡 Sensores <span class="count-chip" id="kpiUpdated">aguardando…</span></div>
+    <div class="kpi-grid sensor-grid" id="kpiGrid" aria-labelledby="sensoresLabel">
 
-    <div class="sensor-grid">
-        <!-- Card 1: TEMPERATURA -->
-        <div class="sensor-card card-temp">
-            <div class="sensor-top">
-                <div class="sensor-label">Temperatura</div>
-                <div class="ring-wrap">
-                    <svg viewBox="0 0 40 40">
-                        <circle class="ring-bg" cx="20" cy="20" r="17"/>
-                        <circle class="ring-fill" id="ringTemp" cx="20" cy="20" r="17"/>
-                    </svg>
-                </div>
+        <div class="sensor-card card-temp" id="cardTemp">
+            <div class="ring-wrap" aria-hidden="true">
+                <svg viewBox="0 0 40 40" width="40" height="40">
+                    <circle class="ring-bg" cx="20" cy="20" r="17"></circle>
+                    <circle class="ring-fill" id="ringTemp" cx="20" cy="20" r="17" stroke-dasharray="106.8" stroke-dashoffset="106.8"></circle>
+                </svg>
             </div>
-            <div class="sensor-value"><span id="valTemp">--</span><span class="sensor-unit">°C</span></div>
-            <div class="sensor-status-row">
-                <span class="delta flat" id="deltaTemp">— primeira leitura</span>
-                <span class="state-chip ok" id="chipTemp">● IDEAL</span>
-            </div>
+            <div class="sensor-top"><div class="sensor-label">Temperatura</div></div>
+            <div class="sensor-value"><span id="valTemp">--</span><span class="sensor-unit"> °C</span></div>
+            <div class="delta flat" id="deltaTemp">— aguardando leitura</div>
             <div class="sensor-bar"><div class="sensor-bar-fill" id="barTemp" style="width:0%"></div></div>
-            <div class="sensor-sublabel">Faixa ideal: 15.0 – 32.0 °C · Alerta > 32 °C</div>
+            <div class="sensor-foot">
+                <span class="sensor-sublabel" id="subTemp">Limite 15–32 °C</span>
+                <span class="state-dot state-idle" id="stateTemp">● AGUARDANDO</span>
+            </div>
             <div class="wm">🌡️</div>
         </div>
 
-        <!-- Card 2: UMIDADE -->
-        <div class="sensor-card card-umid">
-            <div class="sensor-top">
-                <div class="sensor-label">Umidade Relativa</div>
-                <div class="ring-wrap">
-                    <svg viewBox="0 0 40 40">
-                        <circle class="ring-bg" cx="20" cy="20" r="17"/>
-                        <circle class="ring-fill" id="ringUmid" cx="20" cy="20" r="17"/>
-                    </svg>
-                </div>
+        <div class="sensor-card card-umid" id="cardUmid">
+            <div class="ring-wrap" aria-hidden="true">
+                <svg viewBox="0 0 40 40" width="40" height="40">
+                    <circle class="ring-bg" cx="20" cy="20" r="17"></circle>
+                    <circle class="ring-fill" id="ringUmid" cx="20" cy="20" r="17" stroke-dasharray="106.8" stroke-dashoffset="106.8"></circle>
+                </svg>
             </div>
-            <div class="sensor-value"><span id="valUmid">--</span><span class="sensor-unit">%</span></div>
-            <div class="sensor-status-row">
-                <span class="delta flat" id="deltaUmid">— primeira leitura</span>
-                <span class="state-chip ok" id="chipUmid">● IDEAL</span>
-            </div>
+            <div class="sensor-top"><div class="sensor-label">Umidade</div></div>
+            <div class="sensor-value"><span id="valUmid">--</span><span class="sensor-unit"> %</span></div>
+            <div class="delta flat" id="deltaUmid">— aguardando leitura</div>
             <div class="sensor-bar"><div class="sensor-bar-fill" id="barUmid" style="width:0%"></div></div>
-            <div class="sensor-sublabel">Faixa ideal: 40 – 80 % · Alerta > 80 %</div>
+            <div class="sensor-foot">
+                <span class="sensor-sublabel" id="subUmid">Limite 40–80 %</span>
+                <span class="state-dot state-idle" id="stateUmid">● AGUARDANDO</span>
+            </div>
             <div class="wm">💧</div>
         </div>
 
-        <!-- Card 3: PRESSÃO ATMOSFÉRICA -->
-        <div class="sensor-card card-pres">
-            <div class="sensor-top">
-                <div class="sensor-label">Pressão Atmosférica</div>
-                <div class="ring-wrap">
-                    <svg viewBox="0 0 40 40">
-                        <circle class="ring-bg" cx="20" cy="20" r="17"/>
-                        <circle class="ring-fill" id="ringPres" cx="20" cy="20" r="17"/>
-                    </svg>
-                </div>
+        <div class="sensor-card card-pres" id="cardPres">
+            <div class="ring-wrap" aria-hidden="true">
+                <svg viewBox="0 0 40 40" width="40" height="40">
+                    <circle class="ring-bg" cx="20" cy="20" r="17"></circle>
+                    <circle class="ring-fill" id="ringPres" cx="20" cy="20" r="17" stroke-dasharray="106.8" stroke-dashoffset="106.8"></circle>
+                </svg>
             </div>
-            <div class="sensor-value"><span id="valPres">--</span><span class="sensor-unit">hPa</span></div>
-            <div class="sensor-status-row">
-                <span class="delta flat" id="deltaPres">— primeira leitura</span>
-                <span class="state-chip ok" id="chipPres">● NOMINAL</span>
-            </div>
+            <div class="sensor-top"><div class="sensor-label">Pressão</div></div>
+            <div class="sensor-value"><span id="valPres">--</span><span class="sensor-unit"> hPa</span></div>
+            <div class="delta flat" id="deltaPres">— aguardando leitura</div>
             <div class="sensor-bar"><div class="sensor-bar-fill" id="barPres" style="width:0%"></div></div>
-            <div class="sensor-sublabel">Faixa nominal: 980 – 1030 hPa</div>
-            <div class="wm">⏱️</div>
+            <div class="sensor-foot">
+                <span class="sensor-sublabel" id="subPres">Nominal 980–1030 hPa</span>
+                <span class="state-dot state-idle" id="statePres">● AGUARDANDO</span>
+            </div>
+            <div class="wm">🧭</div>
         </div>
 
-        <!-- Card 4: NH3 AMÔNIA -->
-        <div class="sensor-card card-nh3">
-            <div class="sensor-top">
-                <div class="sensor-label">Amônia (NH₃)</div>
-                <div class="ring-wrap">
-                    <svg viewBox="0 0 40 40">
-                        <circle class="ring-bg" cx="20" cy="20" r="17"/>
-                        <circle class="ring-fill" id="ringNh3" cx="20" cy="20" r="17"/>
-                    </svg>
-                </div>
+        <div class="sensor-card card-nh3" id="cardNh3">
+            <div class="ring-wrap" aria-hidden="true">
+                <svg viewBox="0 0 40 40" width="40" height="40">
+                    <circle class="ring-bg" cx="20" cy="20" r="17"></circle>
+                    <circle class="ring-fill" id="ringNh3" cx="20" cy="20" r="17" stroke-dasharray="106.8" stroke-dashoffset="106.8"></circle>
+                </svg>
             </div>
-            <div class="sensor-value"><span id="valNh3">--</span><span class="sensor-unit">ppm</span></div>
-            <div class="sensor-status-row">
-                <span class="delta flat" id="deltaNh3">— primeira leitura</span>
-                <span class="state-chip ok" id="chipNh3">● SEGURO</span>
-            </div>
+            <div class="sensor-top"><div class="sensor-label">Amônia (NH₃)</div></div>
+            <div class="sensor-value"><span id="valNh3">--</span><span class="sensor-unit"> ppm</span></div>
+            <div class="delta flat" id="deltaNh3">— aguardando leitura</div>
             <div class="sensor-bar"><div class="sensor-bar-fill" id="barNh3" style="width:0%"></div></div>
-            <div class="sensor-sublabel">Limite seguro: &lt; 15 ppm · Crítico > 25 ppm</div>
-            <div class="wm">☣️</div>
-        </div>
-    </div>
-    <!-- SEÇÃO: ATUADORES E CONTROLE -->
-    <div class="section-header">
-        <div class="section-title"><i class="fa-solid fa-sliders" style="color:var(--act-v1)"></i> Atuadores & Acionamento</div>
-        <div class="section-badge" id="badgeModoAuto">MANUAL</div>
-    </div>
-
-    <div class="atuadores-grid">
-        <!-- Atuador 1: VENTILADOR 1 -->
-        <div class="atuador-card v1" data-tipo="v1">
-            <div class="act-glow"></div>
-            <div class="atuador-icon-ring"><i class="fa-solid fa-fan"></i></div>
-            <div class="act-bars"><i></i><i></i><i></i><i></i><i></i></div>
-            <div class="atuador-name">Ventilador 1</div>
-            <div class="atuador-desc">Relé 1 · Ventilação Principal</div>
-            <div class="atuador-status">
-                <div class="atuador-chip chip-off" id="chip-v1">
-                    <span class="chip-dot"></span><span id="lbl-v1">DESLIGADO</span>
-                </div>
+            <div class="sensor-foot">
+                <span class="sensor-sublabel" id="subNh3">Crítico acima de 25 ppm</span>
+                <span class="state-dot state-idle" id="stateNh3">● AGUARDANDO</span>
             </div>
-            <div class="atuador-buttons">
-                <button class="act-btn btn-on" id="btn-on-v1" onclick="controlarAtuador('v1','on')">LIGAR</button>
-                <button class="act-btn btn-off active" id="btn-off-v1" onclick="controlarAtuador('v1','off')">DESLIGAR</button>
-            </div>
+            <div class="wm">🧪</div>
         </div>
 
-        <!-- Atuador 2: VENTILADOR 2 -->
-        <div class="atuador-card v2" data-tipo="v2">
-            <div class="act-glow"></div>
-            <div class="atuador-icon-ring"><i class="fa-solid fa-fan"></i></div>
-            <div class="act-bars"><i></i><i></i><i></i><i></i><i></i></div>
-            <div class="atuador-name">Ventilador 2</div>
-            <div class="atuador-desc">Relé 2 · Ventilação Auxiliar</div>
-            <div class="atuador-status">
-                <div class="atuador-chip chip-off" id="chip-v2">
-                    <span class="chip-dot"></span><span id="lbl-v2">DESLIGADO</span>
-                </div>
-            </div>
-            <div class="atuador-buttons">
-                <button class="act-btn btn-on" id="btn-on-v2" onclick="controlarAtuador('v2','on')">LIGAR</button>
-                <button class="act-btn btn-off active" id="btn-off-v2" onclick="controlarAtuador('v2','off')">DESLIGAR</button>
-            </div>
-        </div>
-
-        <!-- Atuador 3: ASPERSOR -->
-        <div class="atuador-card asp" data-tipo="asp">
-            <div class="act-glow"></div>
-            <div class="atuador-icon-ring"><i class="fa-solid fa-faucet-drip"></i></div>
-            <div class="act-bars"><i></i><i></i><i></i><i></i><i></i></div>
-            <div class="atuador-name">Aspersor</div>
-            <div class="atuador-desc">Relé 3 · Aspersão de Telhado / Cama</div>
-            <div class="atuador-status">
-                <div class="atuador-chip chip-off" id="chip-asp">
-                    <span class="chip-dot"></span><span id="lbl-asp">DESLIGADO</span>
-                </div>
-            </div>
-            <div class="atuador-buttons">
-                <button class="act-btn btn-on" id="btn-on-asp" onclick="controlarAtuador('asp','on')">LIGAR</button>
-                <button class="act-btn btn-off active" id="btn-off-asp" onclick="controlarAtuador('asp','off')">DESLIGAR</button>
-            </div>
-        </div>
-
-        <!-- Atuador 4: NEBULIZADOR -->
-        <div class="atuador-card neb" data-tipo="neb">
-            <div class="act-glow"></div>
-            <div class="atuador-icon-ring"><i class="fa-solid fa-smog"></i></div>
-            <div class="act-bars"><i></i><i></i><i></i><i></i><i></i></div>
-            <div class="atuador-name">Nebulizador</div>
-            <div class="atuador-desc">Relé 4 · Alívio Térmico & Redução de NH₃</div>
-            <div class="atuador-status">
-                <div class="atuador-chip chip-off" id="chip-neb">
-                    <span class="chip-dot"></span><span id="lbl-neb">DESLIGADO</span>
-                </div>
-            </div>
-            <div class="atuador-buttons">
-                <button class="act-btn btn-on" id="btn-on-neb" onclick="controlarAtuador('neb','on')">LIGAR</button>
-                <button class="act-btn btn-off active" id="btn-off-neb" onclick="controlarAtuador('neb','off')">DESLIGAR</button>
-            </div>
-        </div>
-    </div>
-    <!-- SEÇÃO: GRÁFICO HISTÓRICO -->
-    <div class="chart-section">
-        <div class="chart-header">
-            <h2 class="chart-title"><i class="fa-solid fa-chart-line" style="color:var(--umid-accent)"></i> Histórico Temporal</h2>
-            <div class="period-buttons">
-                <button class="period-btn" data-period="1h">1h</button>
-                <button class="period-btn active" data-period="6h">6h</button>
-                <button class="period-btn" data-period="24h">24h</button>
-                <button class="period-btn" data-period="7d">7 dias</button>
-            </div>
-        </div>
-        <div class="chart-container">
-            <canvas id="mainChart"></canvas>
-            <div class="loading hidden" id="chartLoading"><div class="spinner"></div></div>
-        </div>
-        <div class="chart-legend">
-            <button type="button" class="legend-toggle-btn" data-series="0"><span class="legend-dot" style="background:#f87171"></span>Temperatura (°C)</button>
-            <button type="button" class="legend-toggle-btn" data-series="1"><span class="legend-dot" style="background:#38bdf8"></span>Umidade (%)</button>
-            <button type="button" class="legend-toggle-btn" data-series="2"><span class="legend-dot" style="background:#34d399"></span>Pressão (hPa)</button>
-            <button type="button" class="legend-toggle-btn" data-series="3"><span class="legend-dot" style="background:#fbbf24"></span>NH₃ (ppm)</button>
-        </div>
     </div>
 
-    <!-- SEÇÃO: ALERTAS OPERACIONAIS -->
+    <!-- ═══════════ ATUADORES (estado — controle no painel admin) ═══════════ -->
+    <div class="section-label">
+        ⚙ Atuadores <span class="count-chip" id="actSummary">--</span>
+        <span class="section-actions">
+            <a class="btn-ghost brand" href="admin.html"><i class="fa-solid fa-sliders"></i> Controlar no painel</a>
+        </span>
+    </div>
+    <div class="actuator-grid">
+
+        <div class="actuator-card act-v1" data-tipo="v1">
+            <div class="act-glow"></div>
+            <div class="act-icon-ring" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="1.6"/>
+                    <path d="M12 10.4c0-2.8 1-5 3-5 1.6 0 2.2 1.6 1.2 3-1 1.4-2.4 2-4.2 2z"/>
+                    <path d="M13.6 12c2.8 0 5 1 5 3 0 1.6-1.6 2.2-3 1.2-1.4-1-2-2.4-2-4.2z"/>
+                    <path d="M12 13.6c0 2.8-1 5-3 5-1.6 0-2.2-1.6-1.2-3 1-1.4 2.4-2 4.2-2z"/>
+                    <path d="M10.4 12c-2.8 0-5-1-5-3 0-1.6 1.6-2.2 3-1.2 1.4 1 2 2.4 2 4.2z"/>
+                </svg>
+            </div>
+            <div class="act-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="act-name">Ventilador 1</div>
+            <div class="act-desc">Exaustão principal</div>
+            <span class="act-chip chip-off" id="chip-v1"><span class="chip-dot"></span>Desligado</span>
+            <div class="act-mode">Modo <span class="mode-value" id="mode-v1">MANUAL</span></div>
+            <div class="act-hint">Tópico MQTT · comando manual bloqueado no modo auto</div>
+        </div>
+
+        <div class="actuator-card act-v2" data-tipo="v2">
+            <div class="act-glow"></div>
+            <div class="act-icon-ring" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="1.6"/>
+                    <path d="M12 10.4c0-2.8 1-5 3-5 1.6 0 2.2 1.6 1.2 3-1 1.4-2.4 2-4.2 2z"/>
+                    <path d="M13.6 12c2.8 0 5 1 5 3 0 1.6-1.6 2.2-3 1.2-1.4-1-2-2.4-2-4.2z"/>
+                    <path d="M12 13.6c0 2.8-1 5-3 5-1.6 0-2.2-1.6-1.2-3 1-1.4 2.4-2 4.2-2z"/>
+                    <path d="M10.4 12c-2.8 0-5-1-5-3 0-1.6 1.6-2.2 3-1.2 1.4 1 2 2.4 2 4.2z"/>
+                </svg>
+            </div>
+            <div class="act-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="act-name">Ventilador 2</div>
+            <div class="act-desc">Exaustão auxiliar</div>
+            <span class="act-chip chip-off" id="chip-v2"><span class="chip-dot"></span>Desligado</span>
+            <div class="act-mode">Modo <span class="mode-value" id="mode-v2">MANUAL</span></div>
+            <div class="act-hint">Tópico MQTT · comando manual bloqueado no modo auto</div>
+        </div>
+
+        <div class="actuator-card act-asp" data-tipo="asp">
+            <div class="act-glow"></div>
+            <div class="act-icon-ring" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3.5c3.2 4.2 5 7 5 9.6a5 5 0 0 1-10 0c0-2.6 1.8-5.4 5-9.6z"/>
+                    <path d="M9.6 14.4a2.6 2.6 0 0 0 2 2.4"/>
+                </svg>
+            </div>
+            <div class="act-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="act-name">Aspersor</div>
+            <div class="act-desc">Umidade do ar</div>
+            <span class="act-chip chip-off" id="chip-asp"><span class="chip-dot"></span>Desligado</span>
+            <div class="act-mode">Modo <span class="mode-value" id="mode-asp">MANUAL</span></div>
+            <div class="act-hint">Aciona em auto quando a umidade &lt; 40 %</div>
+        </div>
+
+        <div class="actuator-card act-neb" data-tipo="neb">
+            <div class="act-glow"></div>
+            <div class="act-icon-ring" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M7 15a4 4 0 1 1 .6-7.95A5 5 0 0 1 17.4 8.6 3.7 3.7 0 0 1 17 15H7z"/>
+                    <path d="M8.5 18.5h7"/>
+                </svg>
+            </div>
+            <div class="act-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="act-name">Nebulizador</div>
+            <div class="act-desc">NH₃ e temperatura</div>
+            <span class="act-chip chip-off" id="chip-neb"><span class="chip-dot"></span>Desligado</span>
+            <div class="act-mode">Modo <span class="mode-value" id="mode-neb">MANUAL</span></div>
+            <div class="act-hint">Aciona em auto com NH₃ &gt; 25 ppm ou calor</div>
+        </div>
+
+    </div>
+
+    <!-- ═══════════ HISTÓRICO ═══════════ -->
+    <div class="section-label">📈 Histórico <span class="count-chip" id="chartSub">—</span></div>
+    <div class="chart-card">
+        <div class="chart-head">
+            <div>
+                <div class="chart-title">Leituras dos Sensores</div>
+                <div class="chart-sub">InfluxDB 1.x · clique na legenda para ocultar séries</div>
+            </div>
+            <div class="legend-list" role="group" aria-label="Séries do gráfico">
+                <button type="button" class="legend-item" data-series="0"><span class="legend-dot" style="background:#f87171"></span>Temp °C</button>
+                <button type="button" class="legend-item" data-series="1"><span class="legend-dot" style="background:#38bdf8"></span>Umid %</button>
+                <button type="button" class="legend-item" data-series="2"><span class="legend-dot" style="background:#34d399"></span>Pressão hPa</button>
+                <button type="button" class="legend-item" data-series="3"><span class="legend-dot" style="background:#fbbf24"></span>NH₃ ppm</button>
+            </div>
+        </div>
+        <div class="chart-wrap">
+            <canvas id="mainChart" role="img" aria-label="Gráfico temporal dos sensores"></canvas>
+            <div class="chart-error" id="chartError" role="alert">
+                <div class="ce-icon">📡</div>
+                <p>Histórico indisponível — em modo Real ele é servido pelo <b>scripts/serve.js</b> (proxy InfluxDB 1.x) na rede local.</p>
+                <button class="btn-ghost" type="button" onclick="carregarHistorico(currentPeriod)">Tentar de novo</button>
+            </div>
+        </div>
+        <div class="period-row" role="group" aria-label="Período do histórico">
+            <button class="period-btn" data-period="1h">1 h</button>
+            <button class="period-btn active" data-period="6h">6 h</button>
+            <button class="period-btn" data-period="24h">24 h</button>
+            <button class="period-btn" data-period="7d">7 dias</button>
+            <span class="period-spacer"></span>
+            <button class="btn-ghost" type="button" onclick="exportarCSV()">⤓ Exportar CSV</button>
+        </div>
+    </div>
+
+    <!-- ═══════════ ALERTAS ═══════════ -->
+    <div class="section-label">🚨 Alertas</div>
     <div class="alerts-card">
         <div class="alerts-head">
             <div class="alerts-title">
-                <i class="fa-solid fa-triangle-exclamation" style="color:var(--temp-accent)"></i> Log de Eventos e Alertas
-                <span class="alerts-count" id="alertsCount">0</span>
+                Log de eventos
+                <span class="badge-count hidden" id="badgeCount">0</span>
             </div>
-            <button class="act-btn" style="flex:none;padding:5px 12px" onclick="limparAlertas()">Limpar</button>
+            <button class="clear-btn" onclick="limparAlertas()">Limpar</button>
         </div>
-        <div class="alerts-log" id="alertsLog">
-            <div class="no-alerts"><i class="fa-solid fa-circle-check" style="color:var(--state-ok);margin-right:6px"></i> Sistema saudável — nenhum alerta ativo no galpão.</div>
+        <div class="alerts-log" id="alertsLog" role="log" aria-live="polite" aria-label="Log de eventos">
+            <div class="no-alerts">Nenhum alerta — sistema saudável 🌿🐔</div>
         </div>
     </div>
 
-    <!-- SEÇÃO: STATUS DO SISTEMA E COMUNICAÇÃO LORA -->
-    <div class="section-header">
-        <div class="section-title"><i class="fa-solid fa-tower-broadcast" style="color:var(--nh3-accent)"></i> Comunicação LoRa & Sistema</div>
-        <div class="section-badge">ENLACE ATIVO</div>
-    </div>
-
-    <div class="system-footer">
-        <div class="sys-item">
-            <div class="sys-value" id="sysRssi">--</div>
-            <div class="sys-label">📡 Sinal LoRa (RSSI)</div>
-        </div>
-        <div class="sys-item">
-            <div class="sys-value" id="sysSnr">--</div>
-            <div class="sys-label">📶 Relação Sinal/Ruído (SNR)</div>
-        </div>
-        <div class="sys-item">
+    <!-- ═══════════ SISTEMA / ENLACE LORA ═══════════ -->
+    <div class="section-label">⚙ Sistema e Enlace LoRa</div>
+    <div class="sys-grid">
+        <div class="sys-card">
+            <div class="sys-label">Última leitura</div>
             <div class="sys-value" id="sysUltima">--</div>
-            <div class="sys-label">⏱️ Última Leitura Recebida</div>
         </div>
-        <div class="sys-item">
+        <div class="sys-card">
+            <div class="sys-label">RSSI LoRa</div>
+            <div class="sys-value" id="sysRssi">--</div>
+        </div>
+        <div class="sys-card">
+            <div class="sys-label">SNR</div>
+            <div class="sys-value" id="sysSnr">--</div>
+        </div>
+        <div class="sys-card">
+            <div class="sys-label">Gateway</div>
             <div class="sys-value" id="sysBroker">--</div>
-            <div class="sys-label">🌐 Endereço do Gateway</div>
         </div>
+        <div class="sys-card">
+            <div class="sys-label">Modo automático</div>
+            <div class="sys-value" id="sysModo">--</div>
+        </div>
+        <div class="sys-card">
+            <div class="sys-label">Nós LoRa ativos</div>
+            <div class="sys-value" id="sysNos">--</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        AVIÁRIO IoT · AEREM PLS · monitorização a cada 5 s · histórico a cada 15 s
+        · <a href="admin.html">painel de controle</a>
     </div>
 
 </div>
@@ -335,6 +338,12 @@
     <script src="js/auth.js"></script>
     <script src="js/zoom.js"></script>
     <script src="js/mock.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/ui.js"></script>
     <script src="js/dashboard.js"></script>
 </body>
 </html>
+
+
+
+

@@ -1,57 +1,89 @@
-        :root {
-            /* Fundo escuro profundo / painel industrial */
-            --bg-primary: #070a10;
-            --bg-secondary: #0d121d;
-            --bg-card: rgba(16, 23, 36, 0.78);
-            --bg-card-solid: #111726;
-            --inset: rgba(0, 0, 0, 0.35);
+/* ═══════════════════════════════════════════════════════════════════
+   AVIÁRIO IoT · tokens.css — fonte única da verdade visual
+   Consola industrial (dark) para supervisão de aviário: calor (âmbar),
+   ventilação (ciano/azul), água (teal) e amônia (âmbar). Sem build step.
+   Nomes consumidos por base.css, dashboard.css, control.css e login.css.
+   ═══════════════════════════════════════════════════════════════════ */
 
-            /* Textos com hierarquia refinada */
-            --text-primary: #f0f4f8;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
+:root {
+  color-scheme: dark;
 
-            /* Paleta temática dos sensores */
-            --temp-accent: #f87171;
-            --temp-gradient: linear-gradient(90deg, #dc2626, #f87171);
-            --umid-accent: #38bdf8;
-            --umid-gradient: linear-gradient(90deg, #0284c7, #38bdf8);
-            --pres-accent: #34d399;
-            --pres-gradient: linear-gradient(90deg, #059669, #34d399);
-            --nh3-accent: #fbbf24;
-            --nh3-gradient: linear-gradient(90deg, #d97706, #fbbf24);
+  /* — Fundo — */
+  --bg:            #070b13;
+  --bg2:           #0b1220;
+  --bg3:           #111a2c;
+  --surface:       rgba(17, 26, 44, 0.74);
+  --surface-2:     rgba(24, 36, 58, 0.62);
+  --surface-solid: #0e1626;
+  --inset:         rgba(0, 0, 0, 0.34);
 
-            /* Cores de atuadores dedicados */
-            --act-v1: #00e5ff;
-            --act-v1-glow: rgba(0, 229, 255, 0.35);
-            --act-v2: #38bdf8;
-            --act-v2-glow: rgba(56, 189, 248, 0.35);
-            --act-asp: #60a5fa;
-            --act-asp-glow: rgba(96, 165, 250, 0.35);
-            --act-neb: #a78bfa;
-            --act-neb-glow: rgba(167, 139, 250, 0.35);
+  /* — Bordas — */
+  --border:        rgba(122, 168, 255, 0.10);
+  --border-2:      rgba(122, 168, 255, 0.22);
+  --border-strong: rgba(96, 165, 250, 0.42);
+  --hairline:      rgba(226, 240, 255, 0.06);
 
-            /* Estados semânticos técnicos */
-            --state-ok: #10e878;
-            --state-warn: #fbbf24;
-            --state-crit: #f87171;
-            --state-idle: #64748b;
+  /* — Marca (identidade aviário: calor / âmbar) — */
+  --brand:   #fb923c;
+  --brand-2: #f97316;
+  --brand-3: #c2410c;
+  --brand-soft: rgba(251, 146, 60, 0.14);
 
-            /* Bordas e linhas de brilho */
-            --border-color: rgba(255, 255, 255, 0.08);
-            --border-bright: rgba(255, 255, 255, 0.16);
-            --border-strong: rgba(56, 189, 248, 0.45);
+  /* — Semântica — */
+  --ok:    #34d399;
+  --warn:  #fbbf24;
+  --crit:  #f87171;
+  --info:  #38bdf8;
+  --idle:  #64748b;
+  --state-on:  #00ffa3;   /* verde néon dos chips LIGADO (atuadores) */
+  --state-off: #f87171;
 
-            /* Tipografia */
-            --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: var(--font-body);
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
-        }
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px 18px 40px; }
+  /* — Sensores ambientais — */
+  --temp:   #f87171;  --temp-2: #dc2626;
+  --umid:   #38bdf8;  --umid-2: #0284c7;
+  --pres:   #34d399;  --pres-2: #059669;
+  --nh3:    #fbbf24;  --nh3-2:  #d97706;
+
+  /* — Texto — */
+  --text:    #eef4ff;
+  --text-2:  #a9c1e8;
+  --muted:   #7286a6;
+  --muted-2: #3b4a66;
+  --on-accent: #06131f;
+
+  /* — Tipografia — */
+  --sans:  'DM Sans', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono:  'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  --display: 'DM Sans', 'Inter', system-ui, sans-serif;
+
+  /* — Escala de raio — */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 26px;
+  --r-pill: 999px;
+
+  /* — Sombras e brilhos — */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.42);
+  --shadow-lg: 0 18px 60px rgba(0, 0, 0, 0.5);
+  --glow: 0 0 26px rgba(251, 146, 60, 0.24);
+  --glow-soft: 0 0 0 3px rgba(251, 146, 60, 0.10);
+
+  /* — Layout — */
+  --max: 1280px;
+  --topbar-h: 64px;
+
+  /* — Movimento — */
+  --ease-out: cubic-bezier(.22, .9, .28, 1);
+  --ease-spring: cubic-bezier(.34, 1.45, .64, 1);
+  --dur-1: 140ms;
+  --dur-2: 240ms;
+  --dur-3: 420ms;
+
+  /* — Gráfico — */
+  --grid: rgba(226, 240, 255, 0.05);
+  --tick: #7286a6;
+  --tooltip-bg: rgba(6, 12, 20, 0.96);
+}

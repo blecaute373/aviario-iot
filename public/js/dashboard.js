@@ -1,525 +1,386 @@
-    // Inicialização da tela de login
-    const loginPassEl = document.getElementById('loginPass');
-    if (loginPassEl) {
-        loginPassEl.addEventListener('keydown', e => { if (e.key === 'Enter') handleLoginSubmit(); });
-    }
-    if (sessionStorage.getItem('aerem_logged_in') === '1') {
-        hideLoginScreen();
-    } else {
-        showLoginScreen();
-    }
+/* ═══════════════════════════════════════════════════════════════════
+   AVIÁRIO IoT · dashboard.js — consola de supervisão (index.html)
+   Monitorização somente-leitura: 4 sensores ambientais, estado dos 4
+   atuadores, gráfico histórico (Chart.js + /api/dados via InfluxDB 1.x),
+   alertas operacionais e qualidade do enlace LoRa.
+   O controle manual dos atuadores fica no painel administrativo
+   (admin.html) — este console apenas exibe o estado.
+   ═══════════════════════════════════════════════════════════════════ */
 
-    const CONFIG = {
-        updateInterval: 5000,
-        limites: {
-            tempMin: 15.0,
-            tempMax: 32.0,
-            umidMin: 40.0,
-            umidMax: 80.0,
-            nh3Max: 25.0
-        }
+const CONFIG_DASH = {
+  updateMs: 5000,        /* leitura de /api/status */
+  historicoMs: 15000,    /* recarga do gráfico */
+  primeiraCarga: true
+};
+
+let mainChart = null;
+let currentPeriod = '6h';
+let limites = Object.assign({}, LIMITES_PADRAO);
+let modoAutoGlobal = false;
+let ultimosValores = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  initChart();
+  preencherUsuarioLogado();
+  atualizarPillStatus(false);
+  carregarStatus();
+  carregarHistorico(currentPeriod);
+
+  document.querySelectorAll('.period-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentPeriod = btn.dataset.period;
+      carregarHistorico(currentPeriod);
+    });
+  });
+
+  document.querySelectorAll('.legend-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!mainChart) return;
+      const idx = parseInt(btn.dataset.series, 10);
+      if (mainChart.isDatasetVisible(idx)) {
+        mainChart.hide(idx);
+        btn.classList.add('off');
+      } else {
+        mainChart.show(idx);
+        btn.classList.remove('off');
+      }
+    });
+  });
+
+  setInterval(carregarStatus, CONFIG_DASH.updateMs);
+  setInterval(() => carregarHistorico(currentPeriod), CONFIG_DASH.historicoMs);
+
+  /* Troca de modo (Simulação/Real) ou de endereço do gateway no modal */
+  document.addEventListener('aerem:modo', recarregarTudo);
+  document.addEventListener('aerem:config', () => { if (!USE_MOCK) recarregarTudo(); });
+});
+
+function recarregarTudo() {
+  CONFIG_DASH.primeiraCarga = true;
+  ultimosValores = null;
+  carregarStatus();
+  carregarHistorico(currentPeriod);
+}
+
+/* ── LEITURA DO STATUS ──────────────────────────────────────────── */
+async function carregarStatus() {
+  try {
+    const d = await apiStatus();
+    if (d.limites) limites = d.limites;
+    modoAutoGlobal = !!d.modoAutomatico;
+
+    aplicarSensores(d);
+    aplicarAtuadores(d.atuadores);
+    aplicarSistema(d);
+    processarAlertas(d);
+
+    ultimosValores = {
+      t: Number(d.temperatura),
+      u: Number(d.umidade),
+      p: Number(d.pressao_hpa !== undefined ? d.pressao_hpa : (Number(d.pressao_pa) / 100)),
+      n: Number(d.nh3_ppm)
     };
 
-    let mainChart = null;
-    let currentPeriod = '6h';
-    let limites = CONFIG.limites;
-    let modoAutomaticoGlobal = false;
-    let ultimosValores = null;
-    const historicoAlertas = [];
+    atualizarPillStatus(true);
+    marcarAtualizado();
+    reiniciarCountdown(CONFIG_DASH.updateMs / 1000);
+    CONFIG_DASH.primeiraCarga = false;
+  } catch (e) {
+    atualizarPillStatus(false);
+  }
+}
 
-    function setMode(simulacao) {
-        USE_MOCK = simulacao;
-        const btnSim = document.getElementById('btnSimulacao');
-        const btnReal = document.getElementById('btnReal');
-        if (btnSim) btnSim.className = 'mode-toggle-btn' + (simulacao ? ' active-sim' : '');
-        if (btnReal) btnReal.className = 'mode-toggle-btn' + (!simulacao ? ' active-real' : '');
-        updateConnectionStatus(true);
-        loadStatus();
-        loadHistorico(currentPeriod);
+/* ── SENSORES ───────────────────────────────────────────────────── */
+function aplicarSensores(d) {
+  const t = Number(d.temperatura);
+  const u = Number(d.umidade);
+  const p = Number(d.pressao_hpa !== undefined ? d.pressao_hpa : (Number(d.pressao_pa) / 100 || 1013));
+  const n = Number(d.nh3_ppm);
+
+  setTexto('valTemp', fmtNum(t)); setTexto('valUmid', fmtNum(u));
+  setTexto('valPres', fmtNum(p, 0)); setTexto('valNh3', fmtNum(n));
+
+  const ant = ultimosValores;
+  aplicarDelta(document.getElementById('deltaTemp'), t, ant ? ant.t : null, '°C');
+  aplicarDelta(document.getElementById('deltaUmid'), u, ant ? ant.u : null, '%');
+  aplicarDelta(document.getElementById('deltaPres'), p, ant ? ant.p : null, 'hPa');
+  aplicarDelta(document.getElementById('deltaNh3'), n, ant ? ant.n : null, 'ppm');
+
+  /* Anéis e barras: posição da leitura na escala do instrumento */
+  const pctT = pctFaixa(t, 10, 42);
+  const pctU = pctFaixa(u, 0, 100);
+  const pctP = pctFaixa(p, 960, 1040);
+  const pctN = pctFaixa(n, 0, 35);
+  setRing('ringTemp', pctT); setBar('barTemp', pctT);
+  setRing('ringUmid', pctU); setBar('barUmid', pctU);
+  setRing('ringPres', pctP); setBar('barPres', pctP);
+  setRing('ringNh3', pctN);  setBar('barNh3', pctN);
+
+  /* Chips de estado conforme os limites operacionais */
+  const estT = estadoTemperatura(t, limites);
+  const estU = estadoUmidade(u, limites);
+  const estP = estadoPressao(p);
+  const estN = estadoNh3(n, limites);
+  setStateDot(document.getElementById('stateTemp'), estT, textoEstado(estT));
+  setStateDot(document.getElementById('stateUmid'), estU, textoEstado(estU));
+  setStateDot(document.getElementById('statePres'), estP, textoEstado(estP));
+  setStateDot(document.getElementById('stateNh3'), estN, textoEstado(estN));
+
+  /* Destaque de card em situação crítica */
+  marcarCritico('cardTemp', estT);
+  marcarCritico('cardUmid', estU);
+  marcarCritico('cardNh3', estN);
+
+  /* Sublabels com os limites vindos do gateway */
+  setTexto('subTemp', `Limite ${fmtNum(limites.tempMin, 0)}–${fmtNum(limites.tempMax, 0)} °C`);
+  setTexto('subUmid', `Limite ${fmtNum(limites.umidMin, 0)}–${fmtNum(limites.umidMax, 0)} %`);
+  setTexto('subPres', 'Nominal 980–1030 hPa');
+  setTexto('subNh3', `Crítico acima de ${fmtNum(limites.nh3Max, 0)} ppm`);
+
+  const chip = document.getElementById('kpiUpdated');
+  if (chip) chip.textContent = 'atualizado às ' + new Date().toLocaleTimeString('pt-BR');
+}
+
+function setTexto(id, texto) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = texto;
+  el.classList.remove('skel');
+}
+
+function marcarCritico(cardId, estado) {
+  const el = document.getElementById(cardId);
+  if (el) el.classList.toggle('is-crit', estado === 'danger');
+}
+
+/* ── ATUADORES (somente leitura) ────────────────────────────────── */
+function aplicarAtuadores(atuadores) {
+  let ativos = 0;
+  ATUADORES.forEach(a => {
+    const ligado = atuadores ? Number(atuadores[a.id]) === 1 : false;
+    if (ligado) ativos++;
+
+    const card = document.querySelector(`.actuator-card[data-tipo="${a.id}"]`);
+    if (card) card.classList.toggle('is-on', ligado);
+
+    const chip = document.getElementById('chip-' + a.id);
+    if (chip) {
+      chip.className = 'act-chip ' + (ligado ? 'chip-on' : 'chip-off');
+      chip.innerHTML = '<span class="chip-dot"></span>' + (ligado ? 'Ligado' : 'Desligado');
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        initChart();
-        loadStatus();
-        loadHistorico(currentPeriod);
+    const modo = document.getElementById('mode-' + a.id);
+    if (modo) modo.textContent = modoAutoGlobal ? 'AUTOMÁTICO' : 'MANUAL';
+  });
 
-        document.querySelectorAll('.period-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentPeriod = btn.dataset.period;
-                loadHistorico(currentPeriod);
-            });
-        });
+  const resumo = document.getElementById('actSummary');
+  if (resumo) resumo.textContent = `${ativos}/4 ativos · modo ${modoAutoGlobal ? 'automático' : 'manual'}`;
+}
 
-        document.querySelectorAll('.legend-toggle-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (!mainChart) return;
-                const idx = parseInt(btn.dataset.series, 10);
-                const isVisible = mainChart.isDatasetVisible(idx);
-                if (isVisible) {
-                    mainChart.hide(idx);
-                    btn.classList.add('off');
-                } else {
-                    mainChart.show(idx);
-                    btn.classList.remove('off');
-                }
-            });
-        });
+/* ── SISTEMA E ENLACE LORA ──────────────────────────────────────── */
+function aplicarSistema(d) {
+  const elUltima = document.getElementById('sysUltima');
+  const elRssi = document.getElementById('sysRssi');
+  const elSnr = document.getElementById('sysSnr');
+  const elBroker = document.getElementById('sysBroker');
+  const elModo = document.getElementById('sysModo');
+  const elNos = document.getElementById('sysNos');
 
-        setInterval(() => loadStatus(), CONFIG.updateInterval);
-        setInterval(() => loadHistorico(currentPeriod), CONFIG.updateInterval * 3);
+  if (elUltima) {
+    const s = Number(d.tempoUltimaLeitura);
+    if (!isNaN(s) && s >= 0) {
+      const m = Math.floor(s / 60);
+      elUltima.textContent = m > 0 ? `${m}m ${s % 60}s atrás` : `${s}s atrás`;
+    } else {
+      elUltima.textContent = 'agora';
+    }
+  }
+
+  if (elRssi) {
+    const r = Number(d.rssi);
+    if (isNaN(r)) { elRssi.textContent = '--'; elRssi.className = 'sys-value'; }
+    else {
+      elRssi.textContent = `${r} dBm`;
+      elRssi.className = 'sys-value ' + (r >= -90 ? 'ok' : r >= -105 ? 'warn' : 'danger');
+    }
+  }
+
+  if (elSnr) {
+    const s = Number(d.snr);
+    elSnr.textContent = isNaN(s) ? '--' : `${s} dB`;
+    elSnr.className = 'sys-value ' + (!isNaN(s) && s >= 7 ? 'ok' : 'warn');
+  }
+
+  if (elBroker) elBroker.textContent = USE_MOCK ? 'Simulação local' : `${BROKER_IP}:${BROKER_PORT}`;
+  if (elModo) {
+    elModo.textContent = modoAutoGlobal ? 'AUTOMÁTICO' : 'MANUAL';
+    elModo.className = 'sys-value ' + (modoAutoGlobal ? 'ok' : '');
+  }
+  if (elNos) {
+    const n = Array.isArray(d.nosAtivos) ? d.nosAtivos.length : null;
+    elNos.textContent = n === null ? '--' : `${n} nó(s) LoRa`;
+  }
+}
+
+/* ── ALERTAS OPERACIONAIS ───────────────────────────────────────── */
+function processarAlertas(d) {
+  const logEl = document.getElementById('alertsLog');
+  const countEl = document.getElementById('badgeCount');
+  if (!logEl) return;
+
+  const t = Number(d.temperatura);
+  const u = Number(d.umidade);
+  const n = Number(d.nh3_ppm);
+  const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const alertas = [];
+
+  if (t > limites.tempMax) {
+    alertas.push({ nivel: 'danger', msg: `Temperatura crítica: ${fmtNum(t)} °C (limite ${fmtNum(limites.tempMax, 0)} °C) — ventilação e nebulização em auto` });
+  } else if (t < limites.tempMin) {
+    alertas.push({ nivel: 'danger', msg: `Temperatura baixa: ${fmtNum(t)} °C (mínimo ${fmtNum(limites.tempMin, 0)} °C) — aquecimento recomendado` });
+  }
+  if (u > limites.umidMax) {
+    alertas.push({ nivel: 'warn', msg: `Umidade elevada: ${fmtNum(u)} % (limite ${fmtNum(limites.umidMax, 0)} %) — cama pode compactar` });
+  } else if (u < limites.umidMin) {
+    alertas.push({ nivel: 'warn', msg: `Umidade baixa: ${fmtNum(u)} % (mínimo ${fmtNum(limites.umidMin, 0)} %) — aspersor em auto` });
+  }
+  if (n > limites.nh3Max) {
+    alertas.push({ nivel: 'danger', msg: `Amônia (NH₃) crítica: ${fmtNum(n)} ppm (limite ${fmtNum(limites.nh3Max, 0)} ppm) — nebulizador em auto` });
+  } else if (n > limites.nh3Max * 0.6) {
+    alertas.push({ nivel: 'warn', msg: `Amônia (NH₃) em atenção: ${fmtNum(n)} ppm` });
+  }
+
+  if (countEl) {
+    countEl.textContent = alertas.length;
+    countEl.classList.toggle('hidden', alertas.length === 0);
+  }
+
+  if (alertas.length === 0) {
+    logEl.innerHTML = '<div class="no-alerts">Nenhum alerta — sistema saudável 🌿🐔</div>';
+    return;
+  }
+  logEl.innerHTML = alertas.map(a => `
+    <div class="log-item ${a.nivel}">
+      <span class="log-msg">${a.msg}</span>
+      <span class="log-time">${hora}</span>
+    </div>`).join('');
+}
+
+function limparAlertas() {
+  const logEl = document.getElementById('alertsLog');
+  const countEl = document.getElementById('badgeCount');
+  if (logEl) logEl.innerHTML = '<div class="no-alerts">Log limpo pelo operador.</div>';
+  if (countEl) { countEl.textContent = '0'; countEl.classList.add('hidden'); }
+}
+
+/* ── GRÁFICO HISTÓRICO ──────────────────────────────────────────── */
+function initChart() {
+  const canvas = document.getElementById('mainChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  mainChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: [
+        {
+          label: 'Temperatura (°C)', borderColor: '#f87171',
+          backgroundColor: 'rgba(248,113,113,0.07)', borderWidth: 2,
+          fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 5, yAxisID: 'y'
+        },
+        {
+          label: 'Umidade (%)', borderColor: '#38bdf8',
+          backgroundColor: 'rgba(56,189,248,0.07)', borderWidth: 2,
+          fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 5, yAxisID: 'y'
+        },
+        {
+          label: 'Pressão (hPa)', borderColor: '#34d399',
+          backgroundColor: 'rgba(52,211,153,0.05)', borderWidth: 2,
+          fill: false, tension: 0.35, pointRadius: 0, pointHoverRadius: 5, yAxisID: 'yPres'
+        },
+        {
+          label: 'NH₃ (ppm)', borderColor: '#fbbf24',
+          backgroundColor: 'rgba(251,191,36,0.07)', borderWidth: 2,
+          fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 5, yAxisID: 'y'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(6,12,20,0.96)',
+          padding: 12,
+          borderColor: 'rgba(122,168,255,0.22)',
+          borderWidth: 1,
+          callbacks: {
+            title: ctxArr => ctxArr[0]?.parsed?.x ? new Date(ctxArr[0].parsed.x).toLocaleString('pt-BR') : ''
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { displayFormats: { minute: 'HH:mm', hour: 'HH:mm', day: 'dd/MM' } },
+          grid: { color: 'rgba(226,240,255,0.05)' },
+          ticks: { color: '#7286a6', maxTicksLimit: 8 }
+        },
+        y: {
+          type: 'linear', position: 'left', min: 0, max: 60,
+          title: { display: true, text: '°C / % / ppm', color: '#7286a6' },
+          grid: { color: 'rgba(226,240,255,0.05)' },
+          ticks: { color: '#7286a6' }
+        },
+        yPres: {
+          type: 'linear', position: 'right', min: 960, max: 1040,
+          title: { display: true, text: 'hPa', color: '#7286a6' },
+          grid: { drawOnChartArea: false },
+          ticks: { color: '#7286a6' }
+        }
+      },
+      animation: { duration: 400 }
+    }
+  });
+}
+
+function periodoMs(p) {
+  return { '1h': 3600000, '6h': 6 * 3600000, '24h': 24 * 3600000, '7d': 7 * 24 * 3600000 }[p] || 3600000;
+}
+
+async function carregarHistorico(periodo) {
+  const erro = document.getElementById('chartError');
+  const sub = document.getElementById('chartSub');
+  try {
+    const d = await apiHistorico(periodo);
+    const pontos = (d && Array.isArray(d.dados)) ? d.dados : [];
+    const tempD = [], umidD = [], presD = [], nh3D = [];
+
+    pontos.forEach(p => {
+      if (p.temp !== null && p.temp !== undefined) tempD.push({ x: p.t, y: p.temp });
+      if (p.umid !== null && p.umid !== undefined) umidD.push({ x: p.t, y: p.umid });
+      if (p.pres_hpa !== null && p.pres_hpa !== undefined) presD.push({ x: p.t, y: p.pres_hpa });
+      if (p.nh3 !== null && p.nh3 !== undefined) nh3D.push({ x: p.t, y: p.nh3 });
     });
 
-    function setRingOffset(id, pct) {
-        const el = document.getElementById(id);
-        if (!el) return;
-        const circumference = 106.8;
-        const val = Math.max(0, Math.min(100, pct));
-        const offset = circumference - (val / 100) * circumference;
-        el.style.strokeDashoffset = offset;
+    if (mainChart) {
+      mainChart.data.datasets[0].data = tempD;
+      mainChart.data.datasets[1].data = umidD;
+      mainChart.data.datasets[2].data = presD;
+      mainChart.data.datasets[3].data = nh3D;
+      const agora = Date.now();
+      mainChart.options.scales.x.min = agora - periodoMs(periodo);
+      mainChart.options.scales.x.max = agora;
+      mainChart.update('none');
     }
+    if (erro) erro.classList.remove('show');
+    if (sub) sub.textContent = `${pontos.length} pontos · ${USE_MOCK ? 'simulação' : 'InfluxDB 1.x'} · clique na legenda para ocultar`;
+  } catch (e) {
+    if (erro) erro.classList.add('show');
+    if (sub) sub.textContent = 'histórico indisponível';
+  }
+}
 
-    function setProgressBar(id, pct) {
-        const el = document.getElementById(id);
-        if (el) el.style.width = Math.max(0, Math.min(100, pct)) + '%';
-    }
-
-    function calcularDelta(atual, anterior, unidade) {
-        if (anterior === null || anterior === undefined) {
-            return { texto: '— primeira leitura', classe: 'flat' };
-        }
-        const diff = Math.round((atual - anterior) * 10) / 10;
-        if (Math.abs(diff) < 0.05) {
-            return { texto: '→ estável', classe: 'flat' };
-        }
-        if (diff > 0) {
-            return { texto: `▲ +${diff.toFixed(1)} ${unidade} vs ant.`, classe: 'up' };
-        }
-        return { texto: `▼ ${diff.toFixed(1)} ${unidade} vs ant.`, classe: 'down' };
-    }
-    function initChart() {
-        const ctx = document.getElementById('mainChart').getContext('2d');
-        mainChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                datasets: [
-                    {
-                        label: 'Temperatura (°C)',
-                        borderColor: '#f87171',
-                        backgroundColor: 'rgba(248,113,113,0.08)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.35,
-                        pointRadius: 0,
-                        pointHoverRadius: 5,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Umidade (%)',
-                        borderColor: '#38bdf8',
-                        backgroundColor: 'rgba(56,189,248,0.08)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.35,
-                        pointRadius: 0,
-                        pointHoverRadius: 5,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Pressão (hPa)',
-                        borderColor: '#34d399',
-                        backgroundColor: 'rgba(52,211,153,0.05)',
-                        borderWidth: 2,
-                        fill: false,
-                        tension: 0.35,
-                        pointRadius: 0,
-                        pointHoverRadius: 5,
-                        yAxisID: 'yPres'
-                    },
-                    {
-                        label: 'NH₃ (ppm)',
-                        borderColor: '#fbbf24',
-                        backgroundColor: 'rgba(251,191,36,0.08)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.35,
-                        pointRadius: 0,
-                        pointHoverRadius: 5,
-                        yAxisID: 'y'
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: 'rgba(7,10,16,0.95)',
-                        padding: 12,
-                        borderColor: '#1e2535',
-                        borderWidth: 1,
-                        callbacks: {
-                            title: ctx => ctx[0]?.parsed?.x ? new Date(ctx[0].parsed.x).toLocaleString('pt-BR') : ''
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: { displayFormats: { minute: 'HH:mm', hour: 'HH:mm', day: 'dd/MM' } },
-                        grid: { color: 'rgba(255,255,255,0.04)' },
-                        ticks: { color: '#64748b', maxTicksLimit: 8 }
-                    },
-                    y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        title: { display: true, text: '°C / % / ppm', color: '#64748b' },
-                        min: 0,
-                        max: 60,
-                        grid: { color: 'rgba(255,255,255,0.04)' },
-                        ticks: { color: '#64748b' }
-                    },
-                    yPres: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        title: { display: true, text: 'hPa', color: '#64748b' },
-                        min: 960,
-                        max: 1040,
-                        grid: { drawOnChartArea: false },
-                        ticks: { color: '#64748b' }
-                    }
-                },
-                animation: { duration: 400 }
-            }
-        });
-    }
-
-    async function loadStatus() {
-        try {
-            const r = USE_MOCK ? await mockFetchStatus() : await fetch(`http://${BROKER_IP}:${BROKER_PORT}/api/status`);
-            if (!r.ok) throw new Error();
-            const d = await r.json();
-            if (d.limites) limites = d.limites;
-            if (d.modoAutomatico !== undefined) modoAutomaticoGlobal = d.modoAutomatico;
-
-            updateSensoresUI(d);
-            updateAtuadoresUI(d.atuadores);
-            updateModoAutoUI(modoAutomaticoGlobal);
-            updateSistemaUI(d);
-            processarAlertas(d);
-            updateConnectionStatus(true);
-        } catch (e) {
-            updateConnectionStatus(false);
-        }
-    }
-    function updateSensoresUI(d) {
-        const t = d.temperatura !== undefined ? Number(d.temperatura) : 0;
-        const u = d.umidade !== undefined ? Number(d.umidade) : 0;
-        const p = d.pressao_hpa || (d.pressao_pa ? Math.round(d.pressao_pa / 100) : 1013);
-        const nh3 = d.nh3_ppm !== undefined ? Number(d.nh3_ppm) : 0;
-
-        document.getElementById('valTemp').textContent = t.toFixed(1);
-        document.getElementById('valUmid').textContent = u.toFixed(1);
-        document.getElementById('valPres').textContent = p;
-        document.getElementById('valNh3').textContent = nh3.toFixed(1);
-
-        // Deltas vs leitura anterior
-        if (ultimosValores) {
-            const dTemp = calcularDelta(t, ultimosValores.t, '°C');
-            const dUmid = calcularDelta(u, ultimosValores.u, '%');
-            const dPres = calcularDelta(p, ultimosValores.p, 'hPa');
-            const dNh3 = calcularDelta(nh3, ultimosValores.nh3, 'ppm');
-
-            const elDt = document.getElementById('deltaTemp');
-            if (elDt) { elDt.textContent = dTemp.texto; elDt.className = 'delta ' + dTemp.classe; }
-            const elDu = document.getElementById('deltaUmid');
-            if (elDu) { elDu.textContent = dUmid.texto; elDu.className = 'delta ' + dUmid.classe; }
-            const elDp = document.getElementById('deltaPres');
-            if (elDp) { elDp.textContent = dPres.texto; elDp.className = 'delta ' + dPres.classe; }
-            const elDn = document.getElementById('deltaNh3');
-            if (elDn) { elDn.textContent = dNh3.texto; elDn.className = 'delta ' + dNh3.classe; }
-        }
-
-        ultimosValores = { t, u, p, nh3 };
-
-        // Anéis SVG e Barras proporcionais (escalas personalizadas)
-        // Temperatura: 0 a 50 °C
-        const pctTemp = Math.min(100, Math.max(0, (t / 50) * 100));
-        setRingOffset('ringTemp', pctTemp);
-        setProgressBar('barTemp', pctTemp);
-
-        // Umidade: 0 a 100 %
-        const pctUmid = Math.min(100, Math.max(0, u));
-        setRingOffset('ringUmid', pctUmid);
-        setProgressBar('barUmid', pctUmid);
-
-        // Pressão: 950 a 1050 hPa
-        const pctPres = Math.min(100, Math.max(0, ((p - 950) / 100) * 100));
-        setRingOffset('ringPres', pctPres);
-        setProgressBar('barPres', pctPres);
-
-        // NH3: 0 a 50 ppm
-        const pctNh3 = Math.min(100, Math.max(0, (nh3 / 50) * 100));
-        setRingOffset('ringNh3', pctNh3);
-        setProgressBar('barNh3', pctNh3);
-
-        // Chips de estado semântico baseados no flows.json
-        // Temp: 15-32 ideal, >28 atenção, >32 ou <15 crítico
-        const chipTemp = document.getElementById('chipTemp');
-        if (chipTemp) {
-            if (t > limites.tempMax || t < limites.tempMin) {
-                chipTemp.className = 'state-chip crit';
-                chipTemp.textContent = t > limites.tempMax ? '● ALTA' : '● BAIXA';
-            } else if (t > 28) {
-                chipTemp.className = 'state-chip warn';
-                chipTemp.textContent = '● ATENÇÃO';
-            } else {
-                chipTemp.className = 'state-chip ok';
-                chipTemp.textContent = '● IDEAL';
-            }
-        }
-
-        // Umidade: 40-80 ideal, >60 atenção, >80 ou <40 crítico
-        const chipUmid = document.getElementById('chipUmid');
-        if (chipUmid) {
-            if (u > limites.umidMax || u < limites.umidMin) {
-                chipUmid.className = 'state-chip crit';
-                chipUmid.textContent = u > limites.umidMax ? '● ELEVADA' : '● BAIXA';
-            } else if (u > 60) {
-                chipUmid.className = 'state-chip warn';
-                chipUmid.textContent = '● ATENÇÃO';
-            } else {
-                chipUmid.className = 'state-chip ok';
-                chipUmid.textContent = '● IDEAL';
-            }
-        }
-
-        // Pressão: 980-1030 nominal
-        const chipPres = document.getElementById('chipPres');
-        if (chipPres) {
-            if (p < 980 || p > 1030) {
-                chipPres.className = 'state-chip warn';
-                chipPres.textContent = '● VARIANDO';
-            } else {
-                chipPres.className = 'state-chip ok';
-                chipPres.textContent = '● NOMINAL';
-            }
-        }
-
-        // NH3: <15 ideal, 15-25 atenção, >25 crítico
-        const chipNh3 = document.getElementById('chipNh3');
-        if (chipNh3) {
-            if (nh3 > limites.nh3Max) {
-                chipNh3.className = 'state-chip crit';
-                chipNh3.textContent = '● CRÍTICO';
-            } else if (nh3 >= 15) {
-                chipNh3.className = 'state-chip warn';
-                chipNh3.textContent = '● ATENÇÃO';
-            } else {
-                chipNh3.className = 'state-chip ok';
-                chipNh3.textContent = '● SEGURO';
-            }
-        }
-    }
-    function updateAtuadoresUI(atuadores) {
-        if (!atuadores) return;
-        ['v1', 'v2', 'asp', 'neb'].forEach(tipo => {
-            const ligado = Number(atuadores[tipo]) === 1;
-            const card = document.querySelector(`.atuador-card.${tipo}`);
-            const chip = document.getElementById(`chip-${tipo}`);
-            const lbl = document.getElementById(`lbl-${tipo}`);
-            const btnOn = document.getElementById(`btn-on-${tipo}`);
-            const btnOff = document.getElementById(`btn-off-${tipo}`);
-
-            if (card) card.classList.toggle('is-on', ligado);
-            if (chip) chip.className = 'atuador-chip ' + (ligado ? 'chip-on' : 'chip-off');
-            if (lbl) lbl.textContent = ligado ? 'LIGADO' : 'DESLIGADO';
-
-            if (btnOn) btnOn.classList.toggle('active', ligado);
-            if (btnOff) btnOff.classList.toggle('active', !ligado);
-        });
-    }
-
-    function updateModoAutoUI(ativo) {
-        const btn = document.getElementById('btnModoAuto');
-        const txt = document.getElementById('txtModoAuto');
-        const badge = document.getElementById('badgeModoAuto');
-        if (btn) {
-            btn.className = 'auto-master-btn ' + (ativo ? 'is-active' : 'is-inactive');
-            btn.textContent = ativo ? 'ATIVADO' : 'DESATIVADO';
-        }
-        if (txt) {
-            txt.textContent = ativo ? 'Automação Ativa (Limites Node-RED)' : 'Controle Manual Habilitado';
-        }
-        if (badge) {
-            badge.textContent = ativo ? 'AUTO ATIVO' : 'MANUAL';
-            badge.style.color = ativo ? 'var(--state-ok)' : 'var(--text-muted)';
-        }
-    }
-
-    function updateSistemaUI(d) {
-        const elRssi = document.getElementById('sysRssi');
-        const elSnr = document.getElementById('sysSnr');
-        const elUltima = document.getElementById('sysUltima');
-        const elBroker = document.getElementById('sysBroker');
-
-        if (elRssi) elRssi.textContent = (d.rssi !== undefined && d.rssi !== null) ? `${d.rssi} dBm` : '--';
-        if (elSnr) elSnr.textContent = (d.snr !== undefined && d.snr !== null) ? `${d.snr} dB` : '--';
-
-        if (elUltima && d.tempoUltimaLeitura >= 0) {
-            const m = Math.floor(d.tempoUltimaLeitura / 60);
-            const s = d.tempoUltimaLeitura % 60;
-            elUltima.textContent = m > 0 ? `${m}m ${s}s atrás` : `${s}s atrás`;
-        } else if (elUltima) {
-            elUltima.textContent = 'Agora';
-        }
-
-        if (elBroker) {
-            elBroker.textContent = USE_MOCK ? 'Simulação Local' : `${BROKER_IP}:${BROKER_PORT}`;
-        }
-    }
-
-    function processarAlertas(d) {
-        const logEl = document.getElementById('alertsLog');
-        const countEl = document.getElementById('alertsCount');
-        if (!logEl) return;
-
-        const alertasAtuais = [];
-        const t = Number(d.temperatura);
-        const u = Number(d.umidade);
-        const nh3 = Number(d.nh3_ppm);
-        const horaStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-        if (t > limites.tempMax) {
-            alertasAtuais.push({ nivel: 'crit', icon: 'fa-temperature-arrow-up', msg: `Temperatura crítica: ${t.toFixed(1)} °C (limite ${limites.tempMax} °C)` });
-        } else if (t < limites.tempMin) {
-            alertasAtuais.push({ nivel: 'crit', icon: 'fa-temperature-arrow-down', msg: `Temperatura baixa: ${t.toFixed(1)} °C (mínimo ${limites.tempMin} °C)` });
-        }
-
-        if (u > limites.umidMax) {
-            alertasAtuais.push({ nivel: 'warn', icon: 'fa-droplet', msg: `Umidade elevada: ${u.toFixed(1)} % (limite ${limites.umidMax} %)` });
-        } else if (u < limites.umidMin) {
-            alertasAtuais.push({ nivel: 'warn', icon: 'fa-droplet-slash', msg: `Umidade baixa: ${u.toFixed(1)} % (aciona aspersor em auto)` });
-        }
-
-        if (nh3 > limites.nh3Max) {
-            alertasAtuais.push({ nivel: 'crit', icon: 'fa-triangle-exclamation', msg: `Amônia (NH₃) crítica: ${nh3.toFixed(1)} ppm (limite ${limites.nh3Max} ppm)` });
-        }
-
-        if (countEl) countEl.textContent = alertasAtuais.length;
-
-        if (alertasAtuais.length === 0) {
-            logEl.innerHTML = '<div class="no-alerts"><i class="fa-solid fa-circle-check" style="color:var(--state-ok);margin-right:6px"></i> Sistema saudável — nenhum alerta ativo no galpão.</div>';
-            return;
-        }
-
-        logEl.innerHTML = alertasAtuais.map(al => `
-            <div class="alert-item ${al.nivel}">
-                <div><i class="fa-solid ${al.icon}" style="margin-right:8px"></i><strong>${al.msg}</strong></div>
-                <div class="alert-item-time">${horaStr}</div>
-            </div>
-        `).join('');
-    }
-    async function loadHistorico(periodo) {
-        const loading = document.getElementById('chartLoading');
-        if (loading) loading.classList.remove('hidden');
-
-        try {
-            // Tenta consultar proxy local/backend ou fallback mock
-            let d;
-            if (USE_MOCK) {
-                d = await (await mockFetchHistorico(periodo)).json();
-            } else {
-                const r = await fetch(`/api/dados?periodo=${periodo}`);
-                if (r.ok) {
-                    d = await r.json();
-                } else {
-                    // Fallback para mock caso esteja fora do alcance
-                    d = await (await mockFetchHistorico(periodo)).json();
-                }
-            }
-
-            const agora = Date.now();
-            const tempD = [], umidD = [], presD = [], nh3D = [];
-
-            if (d.dados && Array.isArray(d.dados)) {
-                d.dados.forEach(p => {
-                    if (p.temp !== null && p.temp !== undefined) tempD.push({ x: p.t, y: p.temp });
-                    if (p.umid !== null && p.umid !== undefined) umidD.push({ x: p.t, y: p.umid });
-                    if (p.pres_hpa !== null && p.pres_hpa !== undefined) presD.push({ x: p.t, y: p.pres_hpa });
-                    if (p.nh3 !== null && p.nh3 !== undefined) nh3D.push({ x: p.t, y: p.nh3 });
-                });
-            }
-
-            if (mainChart) {
-                mainChart.data.datasets[0].data = tempD;
-                mainChart.data.datasets[1].data = umidD;
-                mainChart.data.datasets[2].data = presD;
-                mainChart.data.datasets[3].data = nh3D;
-                mainChart.options.scales.x.min = agora - getPeriodMs(periodo);
-                mainChart.options.scales.x.max = agora;
-                mainChart.update('none');
-            }
-        } catch (e) {
-            console.warn('Falha ao carregar histórico:', e);
-        } finally {
-            if (loading) loading.classList.add('hidden');
-        }
-    }
-
-    async function controlarAtuador(tipo, acao) {
-        try {
-            if (USE_MOCK) {
-                await mockFetchAtuador(tipo, acao);
-            } else {
-                await fetch(`http://${BROKER_IP}:${BROKER_PORT}/api/atuador?tipo=${tipo}&acao=${acao}`);
-            }
-            loadStatus();
-        } catch (e) {
-            console.error('Erro ao acionar atuador:', e);
-        }
-    }
-
-    async function toggleModoAutomatico() {
-        const novoModo = !modoAutomaticoGlobal;
-        try {
-            if (USE_MOCK) {
-                await mockFetchModoAuto(novoModo);
-            } else {
-                await fetch(`http://${BROKER_IP}:${BROKER_PORT}/api/modo-auto?ativo=${novoModo ? 1 : 0}`);
-            }
-            modoAutomaticoGlobal = novoModo;
-            updateModoAutoUI(novoModo);
-            loadStatus();
-        } catch (e) {
-            console.error('Erro ao alterar modo automático:', e);
-        }
-    }
-
-    function limparAlertas() {
-        const logEl = document.getElementById('alertsLog');
-        const countEl = document.getElementById('alertsCount');
-        if (logEl) {
-            logEl.innerHTML = '<div class="no-alerts"><i class="fa-solid fa-circle-check" style="color:var(--state-ok);margin-right:6px"></i> Log de alertas limpo pelo operador.</div>';
-        }
-        if (countEl) countEl.textContent = '0';
-    }
-
-    function updateConnectionStatus(ok) {
-        const b = document.getElementById('connectionStatus');
-        if (!b) return;
-        b.className = 'status-badge ' + (USE_MOCK ? 'simulation' : (ok ? 'online' : 'offline'));
-        const lbl = b.querySelector('span:last-child');
-        if (lbl) {
-            lbl.textContent = USE_MOCK ? 'Simulação' : (ok ? `Conectado (${BROKER_IP})` : 'Sem Conexão');
-        }
-    }
-
-    function getPeriodMs(p) {
-        return { '1h': 3600000, '6h': 6 * 3600000, '24h': 24 * 3600000, '7d': 7 * 24 * 3600000 }[p] || 3600000;
-    }

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#070b13">
+<meta name="description" content="AVIÁRIO IoT — painel administrativo: controle manual dos atuadores e chave mestra do modo automático.">
+<title>AVIÁRIO IoT · Painel de Controle</title>
+<script>(function(){try{if(sessionStorage.getItem('aerem_logged_in')==='1'){document.documentElement.classList.add('aerem-logged')}}catch(e){}})();</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/login.css">
+<!-- dashboard.css: base dos cards de atuador (.actuator-card/.act-chip/--act-*) -->
+<link rel="stylesheet" href="css/dashboard.css">
+<!-- control.css: botões de comando, chave mestra e faixa de monitorização ao vivo -->
+<link rel="stylesheet" href="css/control.css">
+</head>
+<body>
+
+<!-- ═══════════ TELA DE ACESSO (login/registro local) ═══════════ -->
+<div id="loginScreen">
+    <div class="login-box">
+        <img src="assets/logo-aerem.png" alt="AEREM" class="aerem-logo">
+        <h1 id="loginTitle">AVIÁRIO IoT</h1>
+        <p class="hint" id="loginHint">Entre com suas credenciais para continuar</p>
+        <label for="loginUser">Usuário</label>
+        <input type="text" id="loginUser" autocomplete="username" placeholder="usuário">
+        <label for="loginPass">Senha</label>
+        <input type="password" id="loginPass" autocomplete="current-password" placeholder="senha">
+        <button id="loginBtn" onclick="handleLoginSubmit()">Entrar</button>
+        <div class="login-error" id="loginError"></div>
+        <div class="login-toggle" id="loginToggle" onclick="toggleLoginMode()"></div>
+    </div>
+</div>
+
+<!-- ═══════════ MODAL DE CONFIGURAÇÃO DE REDE ═══════════ -->
+<div class="modal-overlay" id="settingsModal">
+    <div class="modal-box">
+        <h2>Configurações de Conexão</h2>
+        <p class="hint">Endereço IP e porta do gateway/Node-RED na rede local.</p>
+        <label for="brokerIpInput">IP do Gateway / Broker</label>
+        <input type="text" id="brokerIpInput" placeholder="192.168.0.5">
+        <label for="brokerPortInput">Porta HTTP</label>
+        <input type="text" id="brokerPortInput" placeholder="80">
+        <div class="modal-error" id="settingsError"></div>
+        <div class="modal-actions">
+            <button class="modal-btn-secondary" onclick="closeSettings()">Cancelar</button>
+            <button class="modal-btn-primary" onclick="saveSettings()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div class="page">
+
+    <!-- ═══════════ TOPBAR ═══════════ -->
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-mark"><span class="bm-icon" aria-hidden="true">🔐</span></div>
+            <div class="brand-text">
+                <div class="brand-name">Painel de Controle</div>
+                <div class="brand-sub">AVIÁRIO IoT · Aviário Nº 01 · Acesso restrito</div>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <div class="status-pill loading" id="statusPill" role="status" aria-live="polite">
+                <span class="s-dot" aria-hidden="true"></span><span id="statusText">A ligar…</span>
+            </div>
+            <div class="refresh-info" id="refreshInfo">—</div>
+            <div class="mode-toggle" title="Alternar modo de operação">
+                <button class="mode-toggle-btn active-sim" id="btnSimulacao" onclick="setModo(true)">
+                    <i class="fa-solid fa-flask"></i> Simulação
+                </button>
+                <button class="mode-toggle-btn" id="btnReal" onclick="setModo(false)">
+                    <i class="fa-solid fa-tower-broadcast"></i> Real
+                </button>
+            </div>
+            <button class="btn-ghost icon-only" onclick="openSettings()" title="Configurações de rede"><i class="fa-solid fa-gear"></i></button>
+            <a class="btn-ghost" href="index.html" title="Voltar para a consola de supervisão"><i class="fa-solid fa-chart-line"></i> Supervisão</a>
+            <span class="auth-user" id="authUser"></span>
+            <button class="btn-ghost danger" onclick="logout()">Sair</button>
+        </div>
+        <div class="countdown-wrap" aria-hidden="true"><div class="countdown-fill" id="countdownBar" style="width:100%"></div></div>
+    </header>
+
+    <!-- ═══════════ MONITORIZAÇÃO AO VIVO ═══════════ -->
+    <div class="section-label">📡 Monitorização ao Vivo <span class="count-chip">auto 5 s</span></div>
+    <div class="live-strip">
+        <div class="live-cell">
+            <div class="s-label">Temperatura</div>
+            <div class="live-val" id="valTemp">--<span class="sensor-unit"> °C</span></div>
+            <div class="delta flat" id="deltaTemp">— aguardando leitura</div>
+            <span class="state-dot state-idle" id="stateTemp">● AGUARDANDO</span>
+        </div>
+        <div class="live-cell">
+            <div class="s-label">Umidade</div>
+            <div class="live-val" id="valUmid">--<span class="sensor-unit"> %</span></div>
+            <div class="delta flat" id="deltaUmid">— aguardando leitura</div>
+            <span class="state-dot state-idle" id="stateUmid">● AGUARDANDO</span>
+        </div>
+        <div class="live-cell">
+            <div class="s-label">Pressão</div>
+            <div class="live-val" id="valPres">--<span class="sensor-unit"> hPa</span></div>
+            <div class="delta flat" id="deltaPres">— aguardando leitura</div>
+            <span class="state-dot state-idle" id="statePres">● AGUARDANDO</span>
+        </div>
+        <div class="live-cell">
+            <div class="s-label">Amônia (NH₃)</div>
+            <div class="live-val" id="valNh3">--<span class="sensor-unit"> ppm</span></div>
+            <div class="delta flat" id="deltaNh3">— aguardando leitura</div>
+            <span class="state-dot state-idle" id="stateNh3">● AGUARDANDO</span>
+        </div>
+    </div>
+    <div class="live-foot">
+        <span class="live-note">última leitura <span class="sys-value ok" id="liveUltima">--</span></span>
+        <span class="live-note">RSSI <span class="sys-value" id="liveRssi">--</span></span>
+        <span class="live-note">SNR <span class="sys-value" id="liveSnr">--</span></span>
+        <span class="live-note">modo automático <span class="sys-value" id="liveModo">--</span></span>
+    </div>
+
+    <!-- ═══════════ CHAVE MESTRA: MODO AUTOMÁTICO ═══════════ -->
+    <div class="section-label">🎛 Automação <span class="count-chip">Node-RED</span></div>
+    <div class="master-card">
+        <div class="master-info">
+            <div class="master-title">🤖 Modo Automático</div>
+            <div class="master-desc">
+                Quando ativo, o Node-RED comanda os 4 atuadores pelos limites operacionais
+                (ventilação e nebulização com calor/NH₃ alto; aspersor com ar seco).
+                Desative para liberar o controle manual abaixo.
+            </div>
+            <div class="master-limits">
+                <span class="limit-chip" id="limitTemp">Temp ideal <b>15–32 °C</b></span>
+                <span class="limit-chip" id="limitUmid">Umidade ideal <b>40–80 %</b></span>
+                <span class="limit-chip" id="limitNh3">NH₃ crítico <b>25 ppm</b></span>
+            </div>
+        </div>
+        <div class="master-toggle">
+            <span class="master-state" id="masterState">Manual</span>
+            <button class="switch" id="switchAuto" role="switch" aria-checked="false" aria-label="Ativar modo automático"></button>
+        </div>
+    </div>
+
+    <div class="banner warn hidden" id="autoWarn">
+        <span class="b-icon">⚠️</span>
+        <span><b>Modo automático ativo</b> — os comandos manuais estão bloqueados para não conflitar com a
+        automação do Node-RED. Desative a chave acima para assumir o controle dos atuadores.</span>
+    </div>
+
+    <!-- ═══════════ CONTROLE MANUAL DOS ATUADORES ═══════════ -->
+    <div class="section-label">🎚 Controle Manual <span class="count-chip">4 atuadores</span></div>
+    <div class="actuator-grid">
+
+        <div class="actuator-card act-v1" data-tipo="v1">
+            <div class="act-glow"></div>
+            <div class="act-icon-ring" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="1.6"/>
+                    <path d="M12 10.4c0-2.8 1-5 3-5 1.6 0 2.2 1.6 1.2 3-1 1.4-2.4 2-4.2 2z"/>
+                    <path d="M13.6 12c2.8 0 5 1 5 3 0 1.6-1.6 2.2-3 1.2-1.4-1-2-2.4-2-4.2z"/>
+                    <path d="M12 13.6c0 2.8-1 5-3 5-1.6 0-2.2-1.6-1.2-3 1-1.4 2.4-2 4.2-2z"/>
+                    <path d="M10.4 12c-2.8 0-5-1-5-3 0-1.6 1.6-2.2 3-1.2 1.4 1 2 2.4 2 4.2z"/>
+                </svg>
+            </div>
+            <div class="act-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="act-name">Ventilador 1</div>
+            <div class="act-desc">Exaustão principal</div>
+            <span class="act-chip chip-off" id="chip-v1"><span class="chip-dot"></span>Desligado</span>
+            <div class="act-control act-control-row">
+                <button class="ctrl-btn ctrl-on" data-tipo="v1" data-acao="on">Ligar</button>
+                <button class="ctrl-btn ctrl-off" data-tipo="v1" data-acao="off">Desligar</button>
+            </div>
+            <div class="act-mode">Modo <span class="mode-value" id="mode-v1">MANUAL</span></div>
+        </div>
+
+        <div class="actuator-card act-v2" data-tipo="v2">
+            <div class="act-glow"></div>
+            <div class="act-icon-ring" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="1.6"/>
+                    <path d="M12 10.4c0-2.8 1-5 3-5 1.6 0 2.2 1.6 1.2 3-1 1.4-2.4 2-4.2 2z"/>
+                    <path d="M13.6 12c2.8 0 5 1 5 3 0 1.6-1.6 2.2-3 1.2-1.4-1-2-2.4-2-4.2z"/>
+                    <path d="M12 13.6c0 2.8-1 5-3 5-1.6 0-2.2-1.6-1.2-3 1-1.4 2.4-2 4.2-2z"/>
+                    <path d="M10.4 12c-2.8 0-5-1-5-3 0-1.6 1.6-2.2 3-1.2 1.4 1 2 2.4 2 4.2z"/>
+                </svg>
+            </div>
+            <div class="act-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="act-name">Ventilador 2</div>
+            <div class="act-desc">Exaustão auxiliar</div>
+            <span class="act-chip chip-off" id="chip-v2"><span class="chip-dot"></span>Desligado</span>
+            <div class="act-control act-control-row">
+                <button class="ctrl-btn ctrl-on" data-tipo="v2" data-acao="on">Ligar</button>
+                <button class="ctrl-btn ctrl-off" data-tipo="v2" data-acao="off">Desligar</button>
+            </div>
+            <div class="act-mode">Modo <span class="mode-value" id="mode-v2">MANUAL</span></div>
+        </div>
+
+        <div class="actuator-card act-asp" data-tipo="asp">
+            <div class="act-glow"></div>
+            <div class="act-icon-ring" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3.5c3.2 4.2 5 7 5 9.6a5 5 0 0 1-10 0c0-2.6 1.8-5.4 5-9.6z"/>
+                    <path d="M9.6 14.4a2.6 2.6 0 0 0 2 2.4"/>
+                </svg>
+            </div>
+            <div class="act-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="act-name">Aspersor</div>
+            <div class="act-desc">Umidade do ar</div>
+            <span class="act-chip chip-off" id="chip-asp"><span class="chip-dot"></span>Desligado</span>
+            <div class="act-control act-control-row">
+                <button class="ctrl-btn ctrl-on" data-tipo="asp" data-acao="on">Ligar</button>
+                <button class="ctrl-btn ctrl-off" data-tipo="asp" data-acao="off">Desligar</button>
+            </div>
+            <div class="act-mode">Modo <span class="mode-value" id="mode-asp">MANUAL</span></div>
+        </div>
+
+        <div class="actuator-card act-neb" data-tipo="neb">
+            <div class="act-glow"></div>
+            <div class="act-icon-ring" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M7 15a4 4 0 1 1 .6-7.95A5 5 0 0 1 17.4 8.6 3.7 3.7 0 0 1 17 15H7z"/>
+                    <path d="M8.5 18.5h7"/>
+                </svg>
+            </div>
+            <div class="act-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="act-name">Nebulizador</div>
+            <div class="act-desc">NH₃ e temperatura</div>
+            <span class="act-chip chip-off" id="chip-neb"><span class="chip-dot"></span>Desligado</span>
+            <div class="act-control act-control-row">
+                <button class="ctrl-btn ctrl-on" data-tipo="neb" data-acao="on">Ligar</button>
+                <button class="ctrl-btn ctrl-off" data-tipo="neb" data-acao="off">Desligar</button>
+            </div>
+            <div class="act-mode">Modo <span class="mode-value" id="mode-neb">MANUAL</span></div>
+        </div>
+
+    </div>
+    <div class="ctrl-status-msg" id="ctrlMsg" role="status" aria-live="polite"></div>
+
+    <!-- ═══════════ LOG DE COMANDOS ═══════════ -->
+    <div class="section-label">
+        📝 Comandos Enviados <span class="count-chip">sessão local</span>
+        <span class="section-actions">
+            <button class="btn-ghost" onclick="comandoLogLimpar()"><i class="fa-solid fa-eraser"></i> Limpar</button>
+        </span>
+    </div>
+    <div class="alerts-card">
+        <div class="cmd-log" id="cmdLog" role="log" aria-live="polite" aria-label="Log de comandos">
+            <div class="no-alerts">Nenhum comando enviado nesta sessão.</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        AVIÁRIO IoT · AEREM PLS · painel administrativo · comandos via <code>/api/atuador</code> e <code>/api/modo-auto</code>
+        · <a href="index.html">consola de supervisão</a>
+    </div>
+
+</div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/mock.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>
+
+
+

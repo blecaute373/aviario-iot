@@ -1,6 +1,6 @@
 # 🐔 Aviário IoT — Sistema de Monitoramento e Controle Ambiental (AEREM PLS)
 
-Sistema IoT completo de monitoramento ambiental e controle para um aviário (galpão avícola): leitura de temperatura, umidade, pressão e amônia (NH₃) por nós LoRa (ATtiny85/ESP32), supervisão via Node-RED (alertas Telegram/Gmail + automação) e **dashboard web "AEREM PLS"** (modos Simulação/Real) com deploy estático no Vercel.
+Sistema IoT completo de monitoramento ambiental e controle para um aviário (galpão avícola): leitura de temperatura, umidade, pressão e amônia (NH₃) por nós LoRa (ATtiny85/ESP32), supervisão via Node-RED (alertas Telegram/Gmail + automação) e **dashboard web "AEREM PLS"** (modos Simulação/Real, supervisão + painel de controle) com deploy estático no Vercel.
 
 ## Início Rápido
 
@@ -9,12 +9,13 @@ Sistema IoT completo de monitoramento ambiental e controle para um aviário (gal
 ```bash
 # 1. Servir localmente (só precisa do Node.js — sem dependências)
 npm run serve
-# 2. Abra http://localhost:3000
+# 2. Abra http://localhost:3000            (consola de supervisão)
+#    e http://localhost:3000/admin.html    (painel de controle dos atuadores)
 # 3. Primeiro acesso: clique em "Configurar usuário e senha" (login local, por navegador)
 # 4. O modo "Simulação" já vem ativo; para dados reais use o ⚙️ e informe IP/porta do ESP32/broker
 ```
 
-Sem Node.js? Basta abrir `public/index.html` direto no navegador (modo Simulação). Detalhes (modos, API esperada, deploy): [`docs/DASHBOARD.md`](docs/DASHBOARD.md).
+Sem Node.js? Basta abrir `public/index.html` direto no navegador (modo Simulação); o painel de controle fica em `public/admin.html` (controle manual dos 4 atuadores + chave mestra do Modo Automático). Detalhes (modos, API esperada, deploy): [`docs/DASHBOARD.md`](docs/DASHBOARD.md).
 
 ### Firmware (VS Code + PlatformIO) — repetir para cada nó
 
@@ -48,9 +49,10 @@ aviario-iot/
 │   ├── dependabot.yml
 │   └── workflows/ci.yml        # check → test → audit
 ├── public/                     # dashboard web AEREM PLS (deploy Vercel)
-│   ├── index.html
-│   ├── css/                    # tokens, base, login, dashboard
-│   ├── js/                     # config, auth, zoom, mock, dashboard
+│   ├── index.html              # consola de supervisão (somente leitura)
+│   ├── admin.html              # painel de controle (atuadores + modo automático)
+│   ├── css/                    # tokens, base, login, dashboard, control
+│   ├── js/                     # config, auth, zoom, mock, api, ui, dashboard, admin
 │   └── assets/                 # logo-aerem.png, logo-baap.png
 ├── firmware/
 │   ├── README.md               # como compilar/gravar cada nó
@@ -129,7 +131,8 @@ O dashboard é **estático** (sem build): o `vercel.json` publica a pasta `publi
 
 ## URLs de Produção
 
-- **Dashboard:** https://aerem-pls.vercel.app (produção — projeto `aerem-pls` na Vercel)
+- **Consola de supervisão:** https://aerem-pls.vercel.app (produção — projeto `aerem-pls` na Vercel)
+- **Painel de controle:** https://aerem-pls.vercel.app/admin.html
 
 ## Arquitetura / Decisões
 
@@ -184,7 +187,7 @@ Detalhes completos em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) e [`docs/PROT
 
 ## Status atual
 
-- Dashboard web **AEREM PLS** publicado em https://aerem-pls.vercel.app (modos Simulação/Real, login local, gráfico com limites).
+- Dashboard web **AEREM PLS** publicado em https://aerem-pls.vercel.app — duas páginas: consola de supervisão (`index.html`) e painel de controle (`admin.html`, 4 atuadores + chave mestra do Modo Automático); modos Simulação/Real, login local e gráfico com limites.
 - Ver [`docs/PROXIMOS_PASSOS.md`](docs/PROXIMOS_PASSOS.md) para o estado mais recente e itens em aberto.
 
 ## Documento técnico formal
