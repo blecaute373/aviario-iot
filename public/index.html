@@ -18,21 +18,56 @@
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 </head>
-<body>
+<body data-pagina="consola">
 
-<!-- ═══════════ TELA DE ACESSO (login/registro local) ═══════════ -->
+<!-- ═══ TELA DE ACESSO (login e cadastro no mesmo URL) ═══
+     Administrador pré-configurado (admin/admin) → painel de controle;
+     usuários cadastrados (nome, e-mail, função e senha) → consola. -->
 <div id="loginScreen">
-    <div class="login-box">
+    <div class="login-box" id="loginBox">
         <img src="assets/logo-aerem.png" alt="AEREM" class="aerem-logo">
         <h1 id="loginTitle">AVIÁRIO IoT</h1>
         <p class="hint" id="loginHint">Entre com suas credenciais para continuar</p>
-        <label for="loginUser">Usuário</label>
-        <input type="text" id="loginUser" autocomplete="username" placeholder="usuário">
-        <label for="loginPass">Senha</label>
-        <input type="password" id="loginPass" autocomplete="current-password" placeholder="senha">
-        <button id="loginBtn" onclick="handleLoginSubmit()">Entrar</button>
-        <div class="login-error" id="loginError"></div>
-        <div class="login-toggle" id="loginToggle" onclick="toggleLoginMode()"></div>
+
+        <div class="somente-login">
+            <label for="loginUser">Usuário</label>
+            <input type="text" id="loginUser" autocomplete="username" placeholder="usuário">
+            <label for="loginPass">Senha</label>
+            <input type="password" id="loginPass" autocomplete="current-password" placeholder="senha">
+        </div>
+
+        <div class="somente-cadastro">
+            <label for="cadNome">Nome completo</label>
+            <input type="text" id="cadNome" autocomplete="name" placeholder="ex.: Maria Souza">
+            <label for="cadEmail">E-mail</label>
+            <input type="email" id="cadEmail" autocomplete="email" placeholder="nome@exemplo.com">
+            <label for="cadFuncao">Função no aviário</label>
+            <input type="text" id="cadFuncao" list="listaFuncoes" autocomplete="organization-title" placeholder="ex.: Técnico(a) de campo">
+            <datalist id="listaFuncoes">
+                <option value="Administração"></option>
+                <option value="Técnico(a) de campo"></option>
+                <option value="Zootecnista"></option>
+                <option value="Veterinário(a)"></option>
+                <option value="Produtor(a)"></option>
+                <option value="Pesquisador(a)"></option>
+                <option value="Visitante"></option>
+            </datalist>
+            <label for="cadUser">Usuário</label>
+            <input type="text" id="cadUser" autocomplete="username" placeholder="3 a 24 caracteres">
+            <label for="cadPass">Senha (mínimo 6 caracteres)</label>
+            <input type="password" id="cadPass" autocomplete="new-password" placeholder="senha">
+            <label for="cadPass2">Confirmar senha</label>
+            <input type="password" id="cadPass2" autocomplete="new-password" placeholder="repetir senha">
+        </div>
+
+        <button id="loginBtn" onclick="entrar()">Entrar</button>
+        <div class="login-error" id="loginError" role="alert"></div>
+        <div class="login-toggle" id="loginToggle" onclick="alternarModoAcesso()">Criar conta</div>
+        <p class="login-admin-hint">
+            Administrador do sistema: <b>admin</b> / <b>admin</b> → painel de controle.
+            Os demais acessos são criados em <b>Criar conta</b> e entram na consola.
+        </p>
+        <div class="login-mode-badge modo-estatico" id="loginModeBadge">🧪 Modo local (sem servidor)</div>
     </div>
 </div>
 
@@ -82,7 +117,7 @@
                 </button>
             </div>
             <button class="btn-ghost icon-only" onclick="openSettings()" title="Configurações de rede"><i class="fa-solid fa-gear"></i></button>
-            <a class="btn-ghost brand" href="admin.html" title="Painel administrativo — controle dos atuadores"><i class="fa-solid fa-sliders"></i> Painel de Controle</a>
+            <a class="btn-ghost brand hidden" data-admin-only href="admin.html" title="Painel administrativo — controle dos atuadores"><i class="fa-solid fa-sliders"></i> Painel de Controle</a>
             <span class="auth-user" id="authUser"></span>
             <button class="btn-ghost danger" onclick="logout()">Sair</button>
         </div>
@@ -327,7 +362,7 @@
 
     <div class="footer">
         AVIÁRIO IoT · AEREM PLS · monitorização a cada 5 s · histórico a cada 15 s
-        · <a href="admin.html">painel de controle</a>
+        <span class="hidden" data-admin-only>· <a href="admin.html">painel de controle</a></span>
     </div>
 
 </div>

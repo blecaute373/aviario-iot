@@ -31,6 +31,9 @@ config.h
 backend/setup_servidor.sh.local
 backend/telegraf/telegraf.conf.local
 
+# Dados locais do acesso (scripts/serve.js): cadastros, sessões e log de acessos
+data/
+
 # Vercel (CLI)
 .vercel/
 

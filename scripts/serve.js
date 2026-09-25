@@ -1,24 +1,37 @@
 /*
- * serve.js — servidor estático e proxy de dados local para o dashboard (public/)
- * Uso: npm run serve  →  http://localhost:3000  (troque a porta com a variável PORT)
+ * serve.js — servidor local do dashboard (public/) + API de acesso
+ * Uso: npm run serve  →  http://localhost:3000  (troque a porta com PORT)
  *
- * Suporta:
- *  - Servir arquivos estáticos de public/
- *  - Proxy de consulta ao InfluxDB 1.x para histórico (/api/dados?periodo=...)
- *    com fallbacks para broker/gateway se configurado, sem expor credenciais no cliente.
+ * Atende:
+ *  - arquivos estáticos de public/ (consola, painel e recursos);
+ *  - acesso e monitorização em /api/auth/* e /api/admin/* (lib/auth-api.js)
+ *    com armazenamento em data/*.json — cadastro, login (administrador
+ *    pré-configurado admin/admin), sessão, logout, usuários e log de acessos;
+ *  - proteção de /admin.html: apenas sessão de administrador;
+ *  - proxy de consulta ao InfluxDB 1.x para o histórico (/api/dados?periodo=...).
+ *
+ * Sem dependências externas: roda apenas com Node.js.
  */
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const url = require('node:url');
 
+const { criarStoreJson } = require('../lib/store-json');
+const { criarRouter, responder, sessaoDeRequisicao } = require('../lib/auth-api');
+
 const ROOT = path.join(__dirname, '..', 'public');
+const DATA_DIR = process.env.AEREM_DATA_DIR || path.join(__dirname, '..', 'data');
 const PORT = Number(process.env.PORT) || 3000;
 const INFLUX_HOST = process.env.INFLUX_HOST || 'localhost';
 const INFLUX_PORT = Number(process.env.INFLUX_PORT) || 8086;
 const INFLUX_DB = process.env.INFLUX_DB || 'aviario';
 const INFLUX_USER = process.env.INFLUX_USER || 'admin';
 const INFLUX_PASS = process.env.INFLUX_PASS || 'SuaSenhaForte123';
+
+/* Armazenamento local do acesso + roteador compartilhado com a nuvem */
+const store = criarStoreJson(DATA_DIR);
+const rotearAcesso = criarRouter({ store, modo: 'local' });
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -71,6 +84,14 @@ const server = http.createServer(async (req, res) => {
   const parsedUrl = url.parse(req.url, true);
   let pathname = decodeURIComponent(parsedUrl.pathname || '/');
 
+  /* ── Acesso e monitorização: cadastro/login/sessão/usuários/acessos ── */
+  if (pathname.startsWith('/api/auth/') || pathname.startsWith('/api/admin/')) {
+    const tratado = await rotearAcesso(req, res);
+    if (tratado) return;
+    responder(res, 404, { ok: false, erro: 'rota_desconhecida', mensagem: 'Rota de API não encontrada.' });
+    return;
+  }
+
   // Rota de histórico via InfluxDB 1.x
   if (pathname === '/api/dados') {
     const periodo = parsedUrl.query.periodo || '6h';
@@ -111,6 +132,20 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  /* ── Painel administrativo: exige sessão de administrador ─────────── */
+  if (pathname === '/admin' || pathname === '/admin.html') {
+    const sessao = await sessaoDeRequisicao(req, store);
+    if (!sessao) {
+      res.writeHead(302, { Location: '/?login=admin' });
+      return res.end();
+    }
+    if (sessao.perfil !== 'admin') {
+      res.writeHead(302, { Location: '/?restrito=1' });
+      return res.end();
+    }
+    pathname = '/admin.html';
+  }
+
   if (pathname === '/') pathname = '/index.html';
   const file = path.join(ROOT, path.normalize(pathname));
   if (!file.startsWith(ROOT)) {
@@ -128,7 +163,12 @@ const server = http.createServer(async (req, res) => {
 });
 
 if (require.main === module) {
-  server.listen(PORT, () => console.log('AEREM PLS — dashboard disponível em http://localhost:' + PORT));
+  server.listen(PORT, () => {
+    console.log('AEREM PLS — dashboard disponível em http://localhost:' + PORT);
+    console.log('  Consola  → http://localhost:' + PORT + '/');
+    console.log('  Painel   → http://localhost:' + PORT + '/admin.html  (administrador: ' + require('../lib/auth').ADMIN_USER + ')');
+    console.log('  Dados de acesso em ' + DATA_DIR);
+  });
 }
 
-module.exports = { server, queryInflux };
+module.exports = { server, queryInflux, store, rotearAcesso };

@@ -19,21 +19,56 @@
 <!-- control.css: botões de comando, chave mestra e faixa de monitorização ao vivo -->
 <link rel="stylesheet" href="css/control.css">
 </head>
-<body>
+<body data-pagina="admin">
 
-<!-- ═══════════ TELA DE ACESSO (login/registro local) ═══════════ -->
+<!-- ═══ TELA DE ACESSO (login e cadastro no mesmo URL) ═══
+     Somente o administrador (padrão admin/admin) permanece nesta página:
+     os demais perfis são encaminhados para a consola de supervisão. -->
 <div id="loginScreen">
-    <div class="login-box">
+    <div class="login-box" id="loginBox">
         <img src="assets/logo-aerem.png" alt="AEREM" class="aerem-logo">
         <h1 id="loginTitle">AVIÁRIO IoT</h1>
         <p class="hint" id="loginHint">Entre com suas credenciais para continuar</p>
-        <label for="loginUser">Usuário</label>
-        <input type="text" id="loginUser" autocomplete="username" placeholder="usuário">
-        <label for="loginPass">Senha</label>
-        <input type="password" id="loginPass" autocomplete="current-password" placeholder="senha">
-        <button id="loginBtn" onclick="handleLoginSubmit()">Entrar</button>
-        <div class="login-error" id="loginError"></div>
-        <div class="login-toggle" id="loginToggle" onclick="toggleLoginMode()"></div>
+
+        <div class="somente-login">
+            <label for="loginUser">Usuário</label>
+            <input type="text" id="loginUser" autocomplete="username" placeholder="usuário">
+            <label for="loginPass">Senha</label>
+            <input type="password" id="loginPass" autocomplete="current-password" placeholder="senha">
+        </div>
+
+        <div class="somente-cadastro">
+            <label for="cadNome">Nome completo</label>
+            <input type="text" id="cadNome" autocomplete="name" placeholder="ex.: Maria Souza">
+            <label for="cadEmail">E-mail</label>
+            <input type="email" id="cadEmail" autocomplete="email" placeholder="nome@exemplo.com">
+            <label for="cadFuncao">Função no aviário</label>
+            <input type="text" id="cadFuncao" list="listaFuncoes" autocomplete="organization-title" placeholder="ex.: Técnico(a) de campo">
+            <datalist id="listaFuncoes">
+                <option value="Administração"></option>
+                <option value="Técnico(a) de campo"></option>
+                <option value="Zootecnista"></option>
+                <option value="Veterinário(a)"></option>
+                <option value="Produtor(a)"></option>
+                <option value="Pesquisador(a)"></option>
+                <option value="Visitante"></option>
+            </datalist>
+            <label for="cadUser">Usuário</label>
+            <input type="text" id="cadUser" autocomplete="username" placeholder="3 a 24 caracteres">
+            <label for="cadPass">Senha (mínimo 6 caracteres)</label>
+            <input type="password" id="cadPass" autocomplete="new-password" placeholder="senha">
+            <label for="cadPass2">Confirmar senha</label>
+            <input type="password" id="cadPass2" autocomplete="new-password" placeholder="repetir senha">
+        </div>
+
+        <button id="loginBtn" onclick="entrar()">Entrar</button>
+        <div class="login-error" id="loginError" role="alert"></div>
+        <div class="login-toggle" id="loginToggle" onclick="alternarModoAcesso()">Criar conta</div>
+        <p class="login-admin-hint">
+            Painel exclusivo do administrador (<b>admin</b> / <b>admin</b>).
+            Os demais perfis entram pela consola de supervisão.
+        </p>
+        <div class="login-mode-badge modo-estatico" id="loginModeBadge">🧪 Modo local (sem servidor)</div>
     </div>
 </div>
 
@@ -251,6 +286,76 @@
         </div>
     </div>
 
+    <!-- ═══════════ USUÁRIOS E ACESSOS (auditoria de login) ═══════════ -->
+    <div class="section-label">
+        👥 Usuários &amp; Acessos <span class="count-chip" id="accChip">—</span>
+        <span class="section-actions">
+            <select class="acc-select" id="accFiltro" aria-label="Filtrar eventos de acesso">
+                <option value="">Todos os eventos</option>
+                <option value="entrada">Entradas</option>
+                <option value="saida">Saídas</option>
+                <option value="cadastro">Cadastros</option>
+                <option value="falha_senha">Falhas de senha</option>
+                <option value="falha_usuario">Falhas de usuário</option>
+            </select>
+            <button class="btn-ghost" onclick="atualizarAcessos()"><i class="fa-solid fa-rotate"></i> Atualizar</button>
+        </span>
+    </div>
+
+    <div class="acc-kpis">
+        <div class="acc-kpi">
+            <div class="acc-kpi-label">Usuários cadastrados</div>
+            <div class="acc-kpi-value" id="accKpiUsuarios">0</div>
+        </div>
+        <div class="acc-kpi">
+            <div class="acc-kpi-label">Entradas hoje</div>
+            <div class="acc-kpi-value ok" id="accKpiEntradas">0</div>
+        </div>
+        <div class="acc-kpi">
+            <div class="acc-kpi-label">Falhas hoje</div>
+            <div class="acc-kpi-value crit" id="accKpiFalhas">0</div>
+        </div>
+        <div class="acc-kpi">
+            <div class="acc-kpi-label">Sessões ativas</div>
+            <div class="acc-kpi-value" id="accKpiSessoes">0</div>
+        </div>
+    </div>
+    <div class="acc-msg" id="accMsg" role="status" aria-live="polite">Carregando o monitoramento de acessos…</div>
+
+    <div class="acc-card">
+        <div class="acc-card-title">📋 Histórico de acessos — quem entrou, quando e de onde</div>
+        <div class="acc-scroll">
+            <table class="acc-table">
+                <thead>
+                    <tr>
+                        <th>Quando</th><th>Evento</th><th>Usuário</th>
+                        <th>Endereço IP</th><th>Navegador</th><th>Detalhe</th>
+                    </tr>
+                </thead>
+                <tbody id="accLogBody">
+                    <tr><td colspan="6" class="acc-vazio">Carregando…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="acc-card">
+        <div class="acc-card-title">👤 Usuários cadastrados (nome, função e último acesso)</div>
+        <div class="acc-scroll">
+            <table class="acc-table">
+                <thead>
+                    <tr>
+                        <th>Nome</th><th>Usuário</th><th>E-mail</th>
+                        <th>Função</th><th>Cadastro</th><th>Último acesso</th>
+                    </tr>
+                </thead>
+                <tbody id="usrBody">
+                    <tr><td colspan="6" class="acc-vazio">Carregando…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <div class="footer">
         AVIÁRIO IoT · AEREM PLS · painel administrativo · comandos via <code>/api/atuador</code> e <code>/api/modo-auto</code>
         · <a href="index.html">consola de supervisão</a>
@@ -263,6 +368,7 @@
     <script src="js/mock.js"></script>
     <script src="js/api.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/acessos.js"></script>
     <script src="js/admin.js"></script>
 </body>
 </html>

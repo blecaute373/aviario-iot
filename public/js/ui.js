@@ -131,10 +131,12 @@ function reiniciarCountdown(segundos) {
   el.style.width = '0%';
 }
 
-/* Nome do usuário logado no topbar */
+/* Usuário logado no topbar (nome · perfil, via módulo de acesso) */
 function preencherUsuarioLogado() {
   const el = document.getElementById('authUser');
-  if (el) el.textContent = localStorage.getItem('aerem_auth_user') || '';
+  if (!el) return;
+  if (window.AEREM_AUTH) el.textContent = AEREM_AUTH.rotuloUsuario();
+  else el.textContent = localStorage.getItem('aerem_auth_user') || '';
 }
 
 /* Exporta as séries atuais do gráfico em CSV */

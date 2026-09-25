@@ -3,7 +3,8 @@
 Frontend estático do aviário, em **duas páginas** com qualidade visual de consola industrial:
 
 - **`index.html` — Consola de Supervisão (somente leitura):** monitoramento ambiental em tempo real (Temperatura, Umidade, Pressão atmosférica e Amônia NH₃) com anéis/limiares, estado dos 4 atuadores, gráfico histórico multi-série via InfluxDB 1.x, alertas operacionais e qualidade do enlace LoRa (RSSI/SNR).
-- **`admin.html` — Painel de Controle (administrativo):** monitorização ao vivo em faixa compacta, **controle manual dos 4 atuadores** (Ventilador 1, Ventilador 2, Aspersor e Nebulizador) e **chave mestra do Modo Automático** (automação Node-RED), com feedback e log de comandos da sessão.
+- **`admin.html` — Painel de Controle (administrativo):** monitorização ao vivo em faixa compacta, **controle manual dos 4 atuadores** (Ventilador 1, Ventilador 2, Aspersor e Nebulizador), **chave mestra do Modo Automático** (automação Node-RED), log de comandos da sessão e **Usuários & Acessos** (auditoria de login).
+- **Acesso único:** as duas páginas compartilham a mesma tela de login/cadastro (`#loginScreen`): o administrador pré-configurado (`admin`/`admin`) segue para o painel, o usuário cadastrado entra na consola — ver a seção *Acesso* abaixo.
 
 ## Estrutura
 
@@ -19,11 +20,12 @@ public/
 │   └── control.css     # controles do admin (botões, chave mestra, faixa ao vivo)
 ├── js/
 │   ├── config.js       # IP/porta do gateway, modo Simulação/Real, modal
-│   ├── auth.js         # login/registro local (localStorage + SHA-256)
+│   ├── auth.js         # acesso: login/cadastro/sessão via /api/auth/*
 │   ├── zoom.js         # pinch/pan em telas de toque (consola)
 │   ├── mock.js         # dados simulados (lógica de automação do flows.json)
 │   ├── api.js          # camada de dados (status/histórico/atuador/modo-auto)
 │   ├── ui.js           # helpers de interface (anéis, deltas, chips, CSV)
+│   ├── acessos.js      # painel: KPIs, usuários e log de acessos (/api/admin/*)
 │   ├── dashboard.js    # lógica da consola de supervisão
 │   └── admin.js        # lógica do painel de controle
 └── assets/
@@ -41,7 +43,7 @@ public/
 | `aerem_modo` | `sim` | modo de operação (`sim`/`real`) |
 | `aerem_broker_ip` | `192.168.0.5` | IP/host do gateway ou servidor backend |
 | `aerem_broker_port` | `80` | porta do servidor HTTP |
-| `aerem_auth_user` / `aerem_auth_pass` | — | credenciais do login local (hash SHA-256) |
+| `aerem_usuarios_local` / `aerem_acessos_local` | — | **apenas na demonstração local**: cadastros e acessos registrados no navegador quando não há servidor de acesso |
 
 ## API esperada do dispositivo / backend (modo Real)
 
@@ -54,12 +56,51 @@ public/
 
 Cadência: status a cada 5 s (topbar com barra de contagem); histórico a cada 15 s nas duas páginas.
 
+## Acesso: login, cadastro e monitoramento
+
+Um único endereço atende os dois perfis — quem entra como **administrador** vai para o painel, quem entra com **cadastro** vai para a consola:
+
+| Perfil | Como entrar | O que vê |
+|---|---|---|
+| Administrador | credencial pré-configurada `admin` / `admin` (alterável com `ADMIN_USER`/`ADMIN_PASS`) | painel de controle: atuadores, modo automático e **Usuários & Acessos** (KPIs, cadastros e log com IP/navegador/horário) |
+| Usuário | **Criar conta** (nome, e-mail, função, usuário e senha de 6+ caracteres) e depois entrar com usuário/senha | consola de supervisão (somente leitura) |
+
+Estados possíveis da tela de acesso, detectados por `GET /api/auth/status` (`public/js/auth.js`):
+
+| Estado | Quando acontece | Comportamento |
+|---|---|---|
+| `servidor` 🔒 | `npm run serve` (local) ou Vercel com `MONGODB_URI` | cadastro/login/sessão **no servidor**; acessos auditáveis no painel |
+| `demo-nuvem` 🧪 | Vercel sem `MONGODB_URI` | demonstração local no navegador; o deploy estático segue funcionando |
+| `estatico` 🧪 | HTML aberto direto (file://) ou host estático | demonstração local no navegador |
+
+### API do acesso (servidor local `scripts/serve.js` e nuvem `api/index.js`)
+
+| Rota | Efeito |
+|---|---|
+| `GET /api/auth/status` | modo do servidor, usuário administrador, validade da sessão e resumo (público) |
+| `POST /api/auth/cadastro` | cria usuário comum, grava o evento `cadastro` e já abre sessão (201) |
+| `POST /api/auth/login` | administrador (`admin`/`admin`) ou usuário cadastrado; 401 em credenciais inválidas, 429 após 8 tentativas |
+| `GET /api/auth/sessao` | sessão atual pelo cookie (usada ao recarregar a página) |
+| `POST /api/auth/logout` | encerra a sessão e grava o evento `saida` |
+| `GET /api/admin/usuarios` | cadastros (nome, usuário, e-mail, função, último acesso) — **só administrador** |
+| `GET /api/admin/acessos?limite=&offset=&evento=` | log de acessos + resumo (`usuarios`, `acessos_hoje`, `falhas_hoje`, `sessoes_ativas`) — **só administrador** |
+
+Eventos registrados no log: `entrada`, `saida`, `cadastro`, `falha_usuario` e `falha_senha` (todos com data/hora, IP e navegador).
+
+### Onde os dados ficam
+
+| Implantação | Armazenamento |
+|---|---|
+| `npm run serve` (rede local) | `data/*.json` (`usuarios.json`, `sessoes.json`, `acessos.json`) — pasta fora do Git; troque com `AEREM_DATA_DIR` |
+| Vercel com `MONGODB_URI` | MongoDB Atlas, coleções `usuarios`, `sessoes` (índice TTL) e `acessos` — driver `mongodb` em `optionalDependencies` (só a nuvem carrega) |
+
 ## Painel administrativo (`admin.html`)
 
 - **Faixa ao vivo:** 4 grandezas com valor, delta vs. leitura anterior, chip de estado (Normal/Atenção/Crítico) e notas de enlace (última leitura, RSSI, SNR, modo).
 - **Chave mestra "Modo Automático":** liga/desliga a automação do Node-RED. Com ela **ativa**, os botões manuais ficam **bloqueados** (a automação reescreveria o estado na próxima leitura) e um aviso explica o motivo; os limites operacionais vigentes são exibidos em chips.
 - **Controle manual:** botões Ligar/Desligar por atuador, com estado real vindo do `/api/status`, feedback do envio e destaque neon quando o atuador está ligado.
 - **Log de comandos:** histórico da sessão (hora, comando, sucesso/falha) — apenas em memória, some ao recarregar.
+- **Usuários & Acessos:** KPIs (usuários cadastrados, entradas e falhas do dia, sessões ativas), tabela de usuários (nome, usuário, e-mail, função, cadastro e último acesso) e log de acessos filtrável por evento — cada linha traz horário, usuário, **IP**, navegador e detalhe; atualiza sozinho a cada 20 s (`public/js/acessos.js`).
 
 ## Alertas e limites operacionais (sincronizados com `flows.json`)
 
@@ -70,7 +111,7 @@ Cadência: status a cada 5 s (topbar com barra de contagem); histórico a cada 1
 
 ## Deploy (Vercel)
 
-Estático — o `vercel.json` da raiz publica `public/` (o `admin.html` fica em `/admin.html`):
+Estático + função — o `vercel.json` da raiz publica `public/` (o `admin.html` fica em `/admin.html`) e publica `api/index.js` para as rotas `/api/*`:
 
 ```bash
 npx vercel login   # uma vez
@@ -79,17 +120,22 @@ npx vercel --prod  # na raiz do repositório
 
 **Produção:** https://aerem-pls.vercel.app (projeto `aerem-pls`).
 
+**Login na nuvem (opcional):** defina `MONGODB_URI` e `MONGODB_DB` (Atlas), além de `ADMIN_USER`/`ADMIN_PASS`, em *Settings → Environment Variables*. Sem `MONGODB_URI` a função responde `{ banco: false }`, a tela de acesso opera em demonstração local e o restante do dashboard continua estático.
+
 > ⚠️ Fora da rede local (ex.: no Vercel), o modo **Real** não conecta ao gateway e o histórico fica indisponível — use **Simulação**; o gráfico exibe o estado de erro com opção de tentar de novo.
 
 ## Segurança
 
-- O login é **local/demonstrativo** (client-side): protege o painel no dispositivo, mas não substitui autenticação de servidor. O painel administrativo compartilha as mesmas credenciais locais da consola.
-- Nenhuma credencial real é versionada; as configurações ficam no `localStorage` do navegador.
+- O acesso é validado **no servidor** (`lib/auth.js` + `lib/auth-api.js`): senha com **scrypt + salt**, sessão em cookie **httpOnly** (`aerem_sessao`, 8 h por padrão), comparação em tempo constante, freio de 8 tentativas por IP+usuário e log de acessos auditável; em `scripts/serve.js`, `/admin.html` exige **sessão de administrador** (usuário comum é redirecionado com aviso).
+- Sem servidor de acesso (HTML aberto direto ou Vercel sem `MONGODB_URI`) a tela entra em **demonstração local** com cadastros no `localStorage` — serve para testar a interface, não é autenticação de servidor.
+- Nenhuma credencial real é versionada; `data/` (JSON do acesso), `.env*` e `config.h` ficam fora do Git.
 
 ## Validação
 
 ```bash
-npm run check   # node --check em todos os scripts (inclui admin.js/api.js/ui.js)
-npm test        # 12 testes: arquivos, refs, CSS balanceado, variáveis, contratos
-npm run serve   # servidor local + proxy InfluxDB 1.x em /api/dados
+npm run check   # node --check em todos os scripts (dashboard, lib/, api/, servidor e testes)
+npm test        # 22 testes: estrutura do dashboard + integração do acesso
+npm run serve   # servidor local + API de acesso (/api/auth/*, /api/admin/*) + proxy InfluxDB 1.x em /api/dados
 ```
+
+`test/auth.test.js` sobe um servidor HTTP efêmero e cobre cadastro (válido, inválido, reservado e duplicado), login do administrador e do usuário cadastrado, sessão por cookie, logout, monitoramento exclusivo do administrador, filtro de eventos e o freio de tentativas (429 após 8 falhas).

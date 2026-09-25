@@ -1,6 +1,13 @@
-# .vercelignore — envia para o Vercel SOMENTE o dashboard (public/) e a config de rotas.
-# Sem isso, o CLI incluiria firmware/, .pio/ (build do PlatformIO), docs etc. no upload.
+# .vercelignore — envia para o Vercel o dashboard (public/), a API de acesso
+# (api/ + lib/) e a config de rotas/instalação. Sem isso, o CLI incluiria
+# firmware/, .pio/ (build do PlatformIO), docs etc. no upload.
 *
 !public
 !public/**
+!api
+!api/**
+!lib
+!lib/**
+!package.json
+!package-lock.json
 !vercel.json

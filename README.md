@@ -65,10 +65,18 @@ aviario-iot/
 │   └── grafana/aviario_dashboard.json
 ├── flows/
 │   └── flows.json              # export do Node-RED — supervisão (ver docs/NODERED.md)
+├── api/
+│   └── index.js                # função serverless (Vercel): rotas /api/* do acesso
+├── lib/
+│   ├── auth.js                 # hash scrypt, tokens de sessão e validações (puro)
+│   ├── auth-api.js             # roteador HTTP do acesso (local e nuvem)
+│   ├── store-json.js           # armazenamento local do acesso (data/*.json)
+│   └── store-mongo.js          # armazenamento na nuvem (MongoDB Atlas)
 ├── scripts/
-│   └── serve.js                # servidor estático local (npm run serve)
+│   └── serve.js                # servidor local + API de acesso (npm run serve)
 ├── test/
-│   └── public.test.js          # testes da estrutura do dashboard (node --test)
+│   ├── public.test.js          # testes da estrutura do dashboard (node --test)
+│   └── auth.test.js            # teste de integração do acesso (HTTP real)
 ├── assets/
 │   └── logos/                  # logo.jpg, baap.jpg
 ├── docs/
@@ -100,12 +108,23 @@ aviario-iot/
 #define MQTT_BROKER "192.168.0.3"   // IP do broker Mosquitto
 ```
 
-**Dashboard (AEREM PLS)** — sem `.env`: configuração pelo próprio navegador (modal ⚙️ e tela de acesso):
+**Dashboard (AEREM PLS)** — configuração pelo próprio navegador (modal ⚙️):
 
 | Chave (localStorage) | Para que serve |
 |---|---|
 | `aerem_broker_ip` / `aerem_broker_port` | endereço do ESP32/broker na rede local (modo Real; padrão `192.168.0.5:80`) |
-| `aerem_auth_user` / `aerem_auth_pass` | credenciais do login local (hash SHA-256 no navegador) |
+| `aerem_modo` | modo de operação (`sim`/`real`) |
+
+**Acesso (login/cadastro/monitoramento de acessos)** — variáveis de ambiente opcionais:
+
+| Variável | Padrão | Uso |
+|---|---|---|
+| `ADMIN_USER` / `ADMIN_PASS` | `admin` / `admin` | credencial pré-configurada do administrador (entra no painel) |
+| `SESSAO_HORAS` | `8` | validade da sessão (cookie `aerem_sessao`, httpOnly) |
+| `AEREM_DATA_DIR` | `data/` (fora do Git) | pasta dos JSON do acesso no `npm run serve` |
+| `MONGODB_URI` / `MONGODB_DB` | — / `aviario` | MongoDB Atlas para o acesso **na nuvem** (Vercel) |
+
+> Sem `MONGODB_URI` a função da nuvem responde `{ banco: false }` e a tela de acesso opera em **demonstração local** (cadastros no navegador) — o deploy estático nunca quebra.
 
 **Backend** — senhas de exemplo em `backend/setup_servidor.sh` (`INFLUX_PASS`, `GRAFANA_ADMIN_PASS`): troque antes de rodar em produção.
 
@@ -113,19 +132,23 @@ aviario-iot/
 
 | Camada | Implementação |
 |---|---|
-| Login do dashboard | **Demonstração/local** — validação client-side (SHA-256 em `localStorage`); protege o painel no navegador, não é autenticação de servidor |
+| Login do dashboard | **Servidor de acesso** (`lib/auth.js` + `lib/auth-api.js`): senha com **scrypt + salt**, sessão em cookie **httpOnly** (`aerem_sessao`, 8 h), freio de tentativas por IP+usuário e log de acessos auditável — a mesma lógica no servidor local e na nuvem |
+| Perfis de acesso | `admin` pré-configurado (`ADMIN_USER`/`ADMIN_PASS`, padrão `admin`/`admin`) entra no **painel de controle** com monitoramento de acessos; usuários cadastrados entram na **consola de supervisão**; `/admin.html` exige sessão de administrador |
+| Sem servidor | Abrir o HTML direto (ou Vercel sem `MONGODB_URI`) cai em **demonstração local**: cadastros no `localStorage`, útil para testar a tela — sem prometer segurança de servidor |
+| Dados de acesso | Servidor local: `data/*.json` (fora do Git); nuvem: MongoDB Atlas (`MONGODB_URI`) com coleções `usuarios`, `sessoes` e `acessos` |
 | Firmware | `config.h` (WiFi/broker) **fora do Git** — apenas `config.h.example` versionado |
 | Backend | credenciais placeholder no `setup_servidor.sh`; nada real versionado |
-| Repositório | `.gitignore` cobre `.env*`, `config.h`, `*.pem`, `*.key`, `.vercel/`, `.pio/` |
-| CI | `check` (sintaxe) → `test` (estrutura) → `audit` de dependências a cada push |
+| Repositório | `.gitignore` cobre `.env*`, `config.h`, `*.pem`, `*.key`, `.vercel/`, `.pio/`, `data/` |
+| CI | `check` (sintaxe) → `test` (estrutura + integração do acesso) → `audit` de dependências a cada push |
 | Histórico | nenhum token/senha real commitado (verificado) |
 
 ## Deploy (Vercel)
 
-O dashboard é **estático** (sem build): o `vercel.json` publica a pasta `public/`.
+O dashboard é **estático** (sem build): o `vercel.json` publica `public/` e a função `api/index.js` atende `/api/auth/*` e `/api/admin/*`.
 
 1. **CLI:** `npx vercel login` (uma vez) → `npx vercel --prod` na raiz do repositório.
 2. **GitHub:** importe o repositório em [vercel.com/new](https://vercel.com/new) (Framework: *Other*); cada push na `main` gera deploy automático.
+3. *(Opcional)* Ative o cadastro/login na nuvem: `MONGODB_URI` (Atlas), `MONGODB_DB`, `ADMIN_USER` e `ADMIN_PASS` em **Settings → Environment Variables**.
 
 > ⚠️ O modo **Real** depende do ESP32/broker na **rede local** — fora dela (ex.: no Vercel) o dashboard permanece em **Simulação** (mesmo comportamento do projeto Estufa, que devolve 503 no controle remoto).
 

@@ -25,6 +25,7 @@ const ARQUIVOS_DASHBOARD = [
   'js/mock.js',
   'js/api.js',
   'js/ui.js',
+  'js/acessos.js',
   'js/dashboard.js',
   'js/admin.js',
   'assets/logo-aerem.png',
@@ -56,7 +57,7 @@ test('páginas referenciam css/js/assets que existem', () => {
 });
 
 test('scripts JS do dashboard passam no node --check', () => {
-  const arquivos = ['config.js', 'auth.js', 'zoom.js', 'mock.js', 'api.js', 'ui.js', 'dashboard.js', 'admin.js'];
+  const arquivos = ['config.js', 'auth.js', 'zoom.js', 'mock.js', 'api.js', 'ui.js', 'acessos.js', 'dashboard.js', 'admin.js'];
   for (const f of arquivos) {
     const r = spawnSync(process.execPath, ['--check', path.join(PUB, 'js', f)]);
     assert.equal(r.status, 0, f + ' falhou: ' + String(r.stderr));
@@ -136,5 +137,49 @@ test('api.js: contrato HTTP do gateway preservado (status/dados/atuador/modo-aut
   assert.ok(js.includes('/api/dados?periodo='), '/api/dados ausente');
   assert.ok(js.includes('/api/atuador?tipo='), '/api/atuador ausente');
   assert.ok(js.includes('/api/modo-auto?ativo='), '/api/modo-auto ausente');
+});
+
+test('vercel.json: função /api/* publicada junto com o dashboard estático', () => {
+  const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
+  const builds = (cfg.builds || []).map((b) => b.src);
+  assert.ok(builds.includes('api/index.js'), 'build da função api/index.js ausente');
+  const rotas = (cfg.routes || []).map((r) => r.src);
+  assert.ok(rotas.includes('/api/(.*)'), 'rota /api/* ausente');
+});
+
+test('acesso: tela única de login/cadastro nas duas páginas', () => {
+  const ids = ['loginBox', 'loginUser', 'loginPass', 'cadNome', 'cadEmail', 'cadFuncao',
+    'cadUser', 'cadPass', 'cadPass2', 'loginError', 'loginToggle', 'loginModeBadge'];
+  for (const pagina of ['index.html', 'admin.html']) {
+    const html = fs.readFileSync(path.join(PUB, pagina), 'utf8');
+    for (const id of ids) {
+      assert.ok(html.includes(`id="${id}"`), pagina + ': campo do acesso ausente: #' + id);
+    }
+    assert.ok(html.includes('onclick="entrar()"'), pagina + ': botão Entrar sem ligação com entrar()');
+  }
+  /* A consola esconde o acesso ao painel para quem não é administrador */
+  const indexHtml = fs.readFileSync(path.join(PUB, 'index.html'), 'utf8');
+  assert.ok(indexHtml.includes('data-admin-only'), 'index.html: links do administrador sem marcação data-admin-only');
+  const adminHtml = fs.readFileSync(path.join(PUB, 'admin.html'), 'utf8');
+  const accIds = ['accChip', 'accMsg', 'accFiltro', 'accLogBody', 'usrBody',
+    'accKpiUsuarios', 'accKpiEntradas', 'accKpiFalhas', 'accKpiSessoes'];
+  for (const id of accIds) {
+    assert.ok(adminHtml.includes(`id="${id}"`), 'painel de auditoria: elemento ausente: #' + id);
+  }
+  assert.ok(adminHtml.includes('src="js/acessos.js"'), 'admin.html não carrega js/acessos.js');
+});
+
+test('acesso: front conversa com /api/auth/* e /api/admin/* (login local antigo removido)', () => {
+  const auth = fs.readFileSync(path.join(PUB, 'js', 'auth.js'), 'utf8');
+  for (const rota of ['/api/auth/status', '/api/auth/login', '/api/auth/cadastro', '/api/auth/sessao', '/api/auth/logout']) {
+    assert.ok(auth.includes(rota), 'auth.js não usa ' + rota);
+  }
+  assert.ok(!auth.includes('handleLoginSubmit'), 'auth.js ainda expõe o login local antigo');
+  assert.ok(!auth.includes('aerem_auth_pass'), 'auth.js ainda guarda senha no navegador');
+
+  const acessos = fs.readFileSync(path.join(PUB, 'js', 'acessos.js'), 'utf8');
+  assert.ok(acessos.includes('/api/admin/acessos'), 'acessos.js não consulta o log de acessos');
+  assert.ok(acessos.includes('/api/admin/usuarios'), 'acessos.js não consulta os usuários');
+  assert.ok(!acessos.includes('CONTINUA'), 'acessos.js ficou incompleto (marcador de rascunho)');
 });
 
