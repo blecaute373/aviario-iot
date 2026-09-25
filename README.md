@@ -41,6 +41,8 @@ aviario/
 │   ├── setup_servidor.sh       # instala InfluxDB 2.x + Telegraf + Grafana
 │   ├── telegraf/telegraf.conf
 │   └── grafana/aviario_dashboard.json
+├── flows/
+│   └── flows.json              # export do Node-RED — supervisão (ver docs/NODERED.md)
 ├── assets/
 │   └── logos/                  # logo.jpg, baap.jpg
 ├── docs/
@@ -49,6 +51,7 @@ aviario/
 │   ├── PROTOCOLO.md
 │   ├── APRENDIZADOS.md
 │   ├── PROXIMOS_PASSOS.md
+│   ├── NODERED.md              # supervisão: fluxo Node-RED documentado
 │   ├── ADR-README.md           # índice das decisões arquiteturais
 │   ├── ADR-0001-protocolo-lora-texto.md
 │   ├── ADR-0002-attiny85-bare-metal.md
@@ -61,6 +64,7 @@ aviario/
 ## Arquitetura / Decisões
 
 - Visão geral do sistema: [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md)
+- Camada de supervisão (Node-RED): [`docs/NODERED.md`](docs/NODERED.md)
 - Decisões arquiteturais registradas (ADRs): [`docs/ADR-README.md`](docs/ADR-README.md)
 
 ## Stack
@@ -69,6 +73,7 @@ aviario/
 - **Rádio**: LoRa 915 MHz (SX1276/RFM95W — RadioLib nos ESP32, driver raw no ATtiny85)
 - **Mensageria**: MQTT (Mosquitto)
 - **Backend**: Telegraf → InfluxDB 2.x → Grafana (instalação via Bash)
+- **Supervisão**: Node-RED (`flows/flows.json`) — dashboard, alertas Telegram/Gmail e automação; gravação em InfluxDB 1.x (ver [`docs/NODERED.md`](docs/NODERED.md))
 
 ## Visão geral da arquitetura
 

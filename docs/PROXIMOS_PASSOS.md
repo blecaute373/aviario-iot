@@ -14,6 +14,7 @@
 2. Confirmar o pipeline completo: LoRa → MQTT → Telegraf → InfluxDB → Grafana, usando o dashboard já pronto (`backend/grafana/aviario_dashboard.json`).
 3. Trocar as credenciais placeholder pelas reais — no firmware, em `firmware/*/src/config.h` (copiado de `config.h.example`, fora do Git); no backend, `INFLUX_PASS`/`GRAFANA_ADMIN_PASS` no `setup_servidor.sh` — sem commitar os valores reais.
 4. Confirmar se o `SENSOR_TIMEOUT_MS` (ou equivalente) ainda é necessário/está presente na versão atual do gateway — não localizado no código revisado desta vez.
+5. Unificar/decidir o pipeline de dados oficial: supervisão Node-RED → InfluxDB 1.x (ver `docs/NODERED.md`) versus backend Telegraf → InfluxDB 2.x → Grafana (`backend/`) — hoje são caminhos paralelos.
 
 ## Registrado antes do envio do código-fonte (reverificar — pode estar desatualizado)
 

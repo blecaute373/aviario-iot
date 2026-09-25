@@ -1,0 +1,1001 @@
+[
+    {
+        "id": "08e6ddee028c6160",
+        "type": "tab",
+        "label": "Aviário IoT",
+        "disabled": false,
+        "info": "Fluxo de monitoramento e controle do aviário: MQTT -> InfluxDB 1.x, Dashboard, alertas via Telegram e Gmail, comandos via Telegram e Dashboard."
+    },
+    {
+        "id": "69358b212fa88a64",
+        "type": "group",
+        "z": "08e6ddee028c6160",
+        "name": "0. Configuração Inicial",
+        "style": {
+            "label": true,
+            "color": "#9aa0a6",
+            "fill": "#1a1a1a",
+            "stroke": "#333333"
+        },
+        "nodes": [
+            "a6315459e0b825eb",
+            "bce8efc81748caaf"
+        ],
+        "x": 34,
+        "y": 59,
+        "w": 502,
+        "h": 82
+    },
+    {
+        "id": "887d08d3eb394a9a",
+        "type": "group",
+        "z": "08e6ddee028c6160",
+        "name": "1. Sensores → InfluxDB + Dashboard + Alertas",
+        "style": {
+            "label": true,
+            "color": "#4dff91",
+            "fill": "#0a1f12",
+            "stroke": "#1a4a2a"
+        },
+        "nodes": [
+            "e5b351c1a5eb6280",
+            "6995ffc3d05d1d45",
+            "3add5a95911940cc",
+            "bdf5db4187d2d443",
+            "fa81a6039f403050",
+            "31384dc7e6c2720d",
+            "eaa0c47270878887",
+            "da2a9acb3dcb2e55",
+            "c1d3c6ae31fb3aaa",
+            "90f61142a1063848"
+        ],
+        "x": 34,
+        "y": 169,
+        "w": 1032,
+        "h": 352
+    },
+    {
+        "id": "442cbd3587137a96",
+        "type": "group",
+        "z": "08e6ddee028c6160",
+        "name": "2. Estado dos Atuadores → InfluxDB + Dashboard",
+        "style": {
+            "label": true,
+            "color": "#5b9dff",
+            "fill": "#0a131f",
+            "stroke": "#1a2c4a"
+        },
+        "nodes": [
+            "a2372843b9fcb96f",
+            "78c76c5ff96900d8",
+            "5087e0a78765fe16",
+            "ba4e457acd6276a6",
+            "e3ac4bf89479b220",
+            "762674066b254f8f",
+            "2dc85d7128e4cb69"
+        ],
+        "x": 24,
+        "y": 569,
+        "w": 802,
+        "h": 242
+    },
+    {
+        "id": "217ba6281d73c1dc",
+        "type": "group",
+        "z": "08e6ddee028c6160",
+        "name": "3. Controle Manual → MQTT",
+        "style": {
+            "label": true,
+            "color": "#c084fc",
+            "fill": "#1a0f2b",
+            "stroke": "#32164a"
+        },
+        "nodes": [
+            "8165e572c01b07e2",
+            "46e9863078346a31",
+            "f45a2148eea1e0a0",
+            "b0b9ee9c06637ba2",
+            "40fefcbbd47fa0aa",
+            "b59c797e56019d47"
+        ],
+        "x": 74,
+        "y": 859,
+        "w": 772,
+        "h": 202
+    },
+    {
+        "id": "a64d9b1831ee3ee3",
+        "type": "group",
+        "z": "08e6ddee028c6160",
+        "name": "4. Modo Automático",
+        "style": {
+            "label": true,
+            "color": "#ffb347",
+            "fill": "#1f160a",
+            "stroke": "#4a320a"
+        },
+        "nodes": [
+            "f48ca5dcbff07f2d",
+            "dca9751c73eb53c8"
+        ],
+        "x": 54,
+        "y": 1099,
+        "w": 502,
+        "h": 82
+    },
+    {
+        "id": "56225f11184e9e7e",
+        "type": "group",
+        "z": "08e6ddee028c6160",
+        "name": "5. Comandos via Telegram",
+        "style": {
+            "label": true,
+            "color": "#00c4ff",
+            "fill": "#0a1f1f",
+            "stroke": "#0e3a40"
+        },
+        "nodes": [
+            "2e13dd54054a30ba",
+            "acb022602412f325",
+            "b0510cb15227b142"
+        ],
+        "x": 44,
+        "y": 1219,
+        "w": 782,
+        "h": 102
+    },
+    {
+        "id": "a6315459e0b825eb",
+        "type": "inject",
+        "z": "08e6ddee028c6160",
+        "g": "69358b212fa88a64",
+        "name": "Ao implantar",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.3,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 150,
+        "y": 100,
+        "wires": [
+            [
+                "bce8efc81748caaf"
+            ]
+        ]
+    },
+    {
+        "id": "bce8efc81748caaf",
+        "type": "function",
+        "z": "08e6ddee028c6160",
+        "g": "69358b212fa88a64",
+        "name": "Define Configurações Globais",
+        "func": "// >>>>>>>>>> EDITE AQUI <<<<<<<<<<\n// Chat ID do Telegram para onde os alertas serão enviados.\n// Para descobrir: converse com @myidbot (ou @userinfobot) no Telegram.\nif (global.get('telegramChatId') === undefined) {\n    global.set('telegramChatId', '6163223530');\n}\n\n// Modo automático: se true, o sistema liga/desliga os atuadores\n// automaticamente conforme os limites definidos em \"Verifica Limites\".\nif (global.get('modoAutomatico') === undefined) {\n    global.set('modoAutomatico', false);\n}\n\n// E-mail de destino dos alertas (Gmail). É enviado em msg.to junto com\n// o alerta - evita o erro \"No recipients defined\" caso o campo \"To\"\n// do nó e-mail não seja preenchido corretamente.\nif (global.get('emailDestino') === undefined) {\n    global.set('emailDestino', 'deivisson.linojr@gmail.com');\n}\n\n// Estado inicial conhecido dos atuadores (será atualizado pelo tópico de estado)\nif (global.get('estadoAtuadores') === undefined) {\n    global.set('estadoAtuadores', { v1: 0, v2: 0, asp: 0, neb: 0 });\n}\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 380,
+        "y": 100,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "e5b351c1a5eb6280",
+        "type": "mqtt in",
+        "z": "08e6ddee028c6160",
+        "g": "887d08d3eb394a9a",
+        "name": "aviario/no1/sensores",
+        "topic": "aviario/no1/sensores",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "cfg_mqtt",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 150,
+        "y": 270,
+        "wires": [
+            [
+                "6995ffc3d05d1d45"
+            ]
+        ]
+    },
+    {
+        "id": "6995ffc3d05d1d45",
+        "type": "function",
+        "z": "08e6ddee028c6160",
+        "g": "887d08d3eb394a9a",
+        "name": "Processa Sensores",
+        "func": "const d = msg.payload;\n\n// Guarda última leitura para uso em /status do Telegram\nglobal.set('ultimosSensores', d);\n\n// 1) Ponto para o InfluxDB (measurement = \"sensores\")\n// IMPORTANTE: o plugin influxdb (1.x) deve receber msg.payload como OBJETO\n// simples { campo: valor } e o measurement em msg.measurement. Enviar um\n// array [{...}] aqui gera o erro \"val.slice is not a function\".\nconst influxMsg = {\n    payload: {\n        temperatura: d.temperatura,\n        umidade: d.umidade,\n        pressao_pa: d.pressao_pa,\n        nh3_ppm: d.nh3_ppm,\n        rssi: d.rssi,\n        snr: d.snr\n    },\n    measurement: 'sensores'\n};\n\nreturn [\n    influxMsg,\n    { payload: d.temperatura },\n    { payload: d.umidade },\n    { payload: Math.round(d.pressao_pa / 100) }, // Pa -> hPa\n    { payload: d.nh3_ppm },\n    msg\n];",
+        "outputs": 6,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 400,
+        "y": 270,
+        "wires": [
+            [
+                "3add5a95911940cc"
+            ],
+            [
+                "bdf5db4187d2d443"
+            ],
+            [
+                "fa81a6039f403050"
+            ],
+            [
+                "31384dc7e6c2720d"
+            ],
+            [
+                "eaa0c47270878887"
+            ],
+            [
+                "da2a9acb3dcb2e55"
+            ]
+        ]
+    },
+    {
+        "id": "3add5a95911940cc",
+        "type": "influxdb out",
+        "z": "08e6ddee028c6160",
+        "g": "887d08d3eb394a9a",
+        "influxdb": "cfg_influx",
+        "name": "InfluxDB - sensores",
+        "measurement": "sensores",
+        "precision": "",
+        "retentionPolicy": "",
+        "database": "aviario",
+        "retentionPolicyV18Flux": "",
+        "org": "",
+        "bucket": "",
+        "x": 690,
+        "y": 210,
+        "wires": []
+    },
+    {
+        "id": "bdf5db4187d2d443",
+        "type": "ui_gauge",
+        "z": "08e6ddee028c6160",
+        "g": "887d08d3eb394a9a",
+        "name": "",
+        "group": "ui_group_sensores",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Temperatura",
+        "label": "°C",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 50,
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "28",
+        "seg2": "35",
+        "diff": false,
+        "className": "",
+        "x": 690,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "fa81a6039f403050",
+        "type": "ui_gauge",
+        "z": "08e6ddee028c6160",
+        "g": "887d08d3eb394a9a",
+        "name": "",
+        "group": "ui_group_sensores",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Umidade",
+        "label": "%",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 100,
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "60",
+        "seg2": "80",
+        "diff": false,
+        "className": "",
+        "x": 690,
+        "y": 310,
+        "wires": []
+    },
+    {
+        "id": "31384dc7e6c2720d",
+        "type": "ui_gauge",
+        "z": "08e6ddee028c6160",
+        "g": "887d08d3eb394a9a",
+        "name": "",
+        "group": "ui_group_sensores",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Pressão",
+        "label": "hPa",
+        "format": "{{value}}",
+        "min": 950,
+        "max": 1050,
+        "colors": [
+            "#00b500",
+            "#00b500",
+            "#00b500"
+        ],
+        "seg1": "980",
+        "seg2": "1030",
+        "diff": false,
+        "className": "",
+        "x": 690,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "eaa0c47270878887",
+        "type": "ui_gauge",
+        "z": "08e6ddee028c6160",
+        "g": "887d08d3eb394a9a",
+        "name": "",
+        "group": "ui_group_sensores",
+        "order": 4,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "NH3",
+        "label": "ppm",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 50,
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "15",
+        "seg2": "25",
+        "diff": false,
+        "className": "",
+        "x": 690,
+        "y": 410,
+        "wires": []
+    },
+    {
+        "id": "da2a9acb3dcb2e55",
+        "type": "function",
+        "z": "08e6ddee028c6160",
+        "g": "887d08d3eb394a9a",
+        "name": "Verifica Limites / Automação / Alertas",
+        "func": "const d = msg.payload;\n\n// ===== LIMITES (ajuste conforme a necessidade) =====\nconst LIM_TEMP_MAX = 32; // °C\nconst LIM_TEMP_MIN = 15; // °C\nconst LIM_UMID_MAX = 80; // %\nconst LIM_NH3_MAX  = 25; // ppm\n\nconst alertas = [];\nif (d.temperatura > LIM_TEMP_MAX) alertas.push(`🌡️ Temperatura ALTA: ${d.temperatura} °C (limite ${LIM_TEMP_MAX} °C)`);\nif (d.temperatura < LIM_TEMP_MIN) alertas.push(`🥶 Temperatura BAIXA: ${d.temperatura} °C (limite ${LIM_TEMP_MIN} °C)`);\nif (d.umidade > LIM_UMID_MAX) alertas.push(`💧 Umidade ALTA: ${d.umidade} % (limite ${LIM_UMID_MAX} %)`);\nif (d.nh3_ppm > LIM_NH3_MAX) alertas.push(`☣️ Amônia (NH3) ALTA: ${d.nh3_ppm} ppm (limite ${LIM_NH3_MAX} ppm)`);\n\n// ===== MODO AUTOMÁTICO =====\n// Se ativado pelo switch \"Modo Automático\" no dashboard, o sistema ajusta\n// os atuadores automaticamente conforme os limites acima.\nlet autoMsg = null;\nif (global.get('modoAutomatico') === true) {\n    const estado = Object.assign({ v1: 0, v2: 0, asp: 0, neb: 0 }, global.get('estadoAtuadores') || {});\n    const novo = Object.assign({}, estado);\n\n    novo.v1  = (d.temperatura > LIM_TEMP_MAX) ? 1 : 0;\n    novo.v2  = (d.temperatura > LIM_TEMP_MAX) ? 1 : 0;\n    novo.neb = (d.nh3_ppm > LIM_NH3_MAX || d.temperatura > LIM_TEMP_MAX) ? 1 : 0;\n    novo.asp = (d.umidade < 40) ? 1 : 0; // exemplo: aspersor liga se umidade muito baixa\n\n    if (JSON.stringify(novo) !== JSON.stringify(estado)) {\n        global.set('estadoAtuadores', novo);\n        autoMsg = { payload: novo };\n    }\n}\n\nif (alertas.length === 0) return [null, null, autoMsg];\n\nconst texto = `⚠️ ALERTA AVIÁRIO ⚠️\\n\\n` + alertas.join('\\n') +\n  `\\n\\nLeitura completa:\\nTemp: ${d.temperatura} °C | Umid: ${d.umidade} % | NH3: ${d.nh3_ppm} ppm | Pressão: ${Math.round(d.pressao_pa/100)} hPa`;\n\nconst msgTelegram = { payload: { type: 'message', content: texto, chatId: global.get('telegramChatId') } };\n// 'to' precisa estar na RAIZ da mensagem para o nó e-mail - se o campo\n// \"To\" do nó ficar vazio ou for ignorado, isso evita o erro\n// \"No recipients defined\".\nconst msgEmail = { to: global.get('emailDestino'), topic: 'Alerta - Sistema de Monitoramento do Aviário', payload: texto };\n\nreturn [msgTelegram, msgEmail, autoMsg];",
+        "outputs": 3,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 690,
+        "y": 470,
+        "wires": [
+            [
+                "c1d3c6ae31fb3aaa"
+            ],
+            [
+                "90f61142a1063848"
+            ],
+            [
+                "b59c797e56019d47"
+            ]
+        ]
+    },
+    {
+        "id": "c1d3c6ae31fb3aaa",
+        "type": "telegram sender",
+        "z": "08e6ddee028c6160",
+        "g": "887d08d3eb394a9a",
+        "name": "Telegram - Alerta",
+        "bot": "cfg_telegram",
+        "haserroroutput": false,
+        "outputs": 1,
+        "x": 950,
+        "y": 430,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "90f61142a1063848",
+        "type": "e-mail",
+        "z": "08e6ddee028c6160",
+        "g": "887d08d3eb394a9a",
+        "server": "smtp.gmail.com",
+        "port": "465",
+        "authtype": "BASIC",
+        "saslformat": false,
+        "token": "oauth2Response.access_token",
+        "secure": true,
+        "tls": true,
+        "name": "deivisson.linojr@gmail.com",
+        "dname": "Aviário IoT",
+        "x": 950,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "a2372843b9fcb96f",
+        "type": "mqtt in",
+        "z": "08e6ddee028c6160",
+        "g": "442cbd3587137a96",
+        "name": "aviario/no1/atuadores/estado",
+        "topic": "aviario/no1/atuadores/estado",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "cfg_mqtt",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 170,
+        "y": 650,
+        "wires": [
+            [
+                "78c76c5ff96900d8"
+            ]
+        ]
+    },
+    {
+        "id": "78c76c5ff96900d8",
+        "type": "function",
+        "z": "08e6ddee028c6160",
+        "g": "442cbd3587137a96",
+        "name": "Processa Estado Atuadores",
+        "func": "const d = msg.payload;\n\n// Atualiza contexto global - usado ao montar novos comandos\nglobal.set('estadoAtuadores', { v1: d.v1, v2: d.v2, asp: d.asp, neb: d.neb });\n\n// Mesmo formato corrigido: objeto simples + msg.measurement (evita\n// \"val.slice is not a function\" no plugin influxdb 1.x)\nconst influxMsg = { payload: { v1: d.v1, v2: d.v2, asp: d.asp, neb: d.neb }, measurement: 'atuadores' };\n\nreturn [\n    influxMsg,\n    { payload: d.v1 === 1 },\n    { payload: d.v2 === 1 },\n    { payload: d.asp === 1 },\n    { payload: d.neb === 1 }\n];",
+        "outputs": 5,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 650,
+        "wires": [
+            [
+                "5087e0a78765fe16"
+            ],
+            [
+                "ba4e457acd6276a6"
+            ],
+            [
+                "e3ac4bf89479b220"
+            ],
+            [
+                "762674066b254f8f"
+            ],
+            [
+                "2dc85d7128e4cb69"
+            ]
+        ]
+    },
+    {
+        "id": "5087e0a78765fe16",
+        "type": "influxdb out",
+        "z": "08e6ddee028c6160",
+        "g": "442cbd3587137a96",
+        "influxdb": "cfg_influx",
+        "name": "InfluxDB - atuadores",
+        "measurement": "atuadores",
+        "precision": "",
+        "retentionPolicy": "",
+        "database": "aviario",
+        "retentionPolicyV18Flux": "",
+        "org": "",
+        "bucket": "",
+        "x": 700,
+        "y": 610,
+        "wires": []
+    },
+    {
+        "id": "ba4e457acd6276a6",
+        "type": "ui_text",
+        "z": "08e6ddee028c6160",
+        "g": "442cbd3587137a96",
+        "group": "ui_group_atuadores",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Ventilador 1",
+        "format": "{{msg.payload ? \"🟢 Ligado\" : \"⚪ Desligado\"}}",
+        "layout": "row-spread",
+        "className": "",
+        "x": 700,
+        "y": 650,
+        "wires": []
+    },
+    {
+        "id": "e3ac4bf89479b220",
+        "type": "ui_text",
+        "z": "08e6ddee028c6160",
+        "g": "442cbd3587137a96",
+        "group": "ui_group_atuadores",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Ventilador 2",
+        "format": "{{msg.payload ? \"🟢 Ligado\" : \"⚪ Desligado\"}}",
+        "layout": "row-spread",
+        "className": "",
+        "x": 700,
+        "y": 690,
+        "wires": []
+    },
+    {
+        "id": "762674066b254f8f",
+        "type": "ui_text",
+        "z": "08e6ddee028c6160",
+        "g": "442cbd3587137a96",
+        "group": "ui_group_atuadores",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Aspersor",
+        "format": "{{msg.payload ? \"🟢 Ligado\" : \"⚪ Desligado\"}}",
+        "layout": "row-spread",
+        "className": "",
+        "x": 700,
+        "y": 730,
+        "wires": []
+    },
+    {
+        "id": "2dc85d7128e4cb69",
+        "type": "ui_text",
+        "z": "08e6ddee028c6160",
+        "g": "442cbd3587137a96",
+        "group": "ui_group_atuadores",
+        "order": 4,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Nebulizador",
+        "format": "{{msg.payload ? \"🟢 Ligado\" : \"⚪ Desligado\"}}",
+        "layout": "row-spread",
+        "className": "",
+        "x": 700,
+        "y": 770,
+        "wires": []
+    },
+    {
+        "id": "8165e572c01b07e2",
+        "type": "ui_switch",
+        "z": "08e6ddee028c6160",
+        "g": "217ba6281d73c1dc",
+        "name": "",
+        "label": "Ventilador 1",
+        "tooltip": "",
+        "group": "ui_group_atuadores",
+        "order": 5,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "decouple": "false",
+        "topic": "v1",
+        "topicType": "str",
+        "style": "",
+        "onvalue": "true",
+        "onvalueType": "bool",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "false",
+        "offvalueType": "bool",
+        "officon": "",
+        "offcolor": "",
+        "animate": false,
+        "className": "",
+        "x": 170,
+        "y": 900,
+        "wires": [
+            [
+                "40fefcbbd47fa0aa"
+            ]
+        ]
+    },
+    {
+        "id": "46e9863078346a31",
+        "type": "ui_switch",
+        "z": "08e6ddee028c6160",
+        "g": "217ba6281d73c1dc",
+        "name": "",
+        "label": "Ventilador 2",
+        "tooltip": "",
+        "group": "ui_group_atuadores",
+        "order": 6,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "decouple": "false",
+        "topic": "v2",
+        "topicType": "str",
+        "style": "",
+        "onvalue": "true",
+        "onvalueType": "bool",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "false",
+        "offvalueType": "bool",
+        "officon": "",
+        "offcolor": "",
+        "animate": false,
+        "className": "",
+        "x": 170,
+        "y": 940,
+        "wires": [
+            [
+                "40fefcbbd47fa0aa"
+            ]
+        ]
+    },
+    {
+        "id": "f45a2148eea1e0a0",
+        "type": "ui_switch",
+        "z": "08e6ddee028c6160",
+        "g": "217ba6281d73c1dc",
+        "name": "",
+        "label": "Aspersor",
+        "tooltip": "",
+        "group": "ui_group_atuadores",
+        "order": 7,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "decouple": "false",
+        "topic": "asp",
+        "topicType": "str",
+        "style": "",
+        "onvalue": "true",
+        "onvalueType": "bool",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "false",
+        "offvalueType": "bool",
+        "officon": "",
+        "offcolor": "",
+        "animate": false,
+        "className": "",
+        "x": 170,
+        "y": 980,
+        "wires": [
+            [
+                "40fefcbbd47fa0aa"
+            ]
+        ]
+    },
+    {
+        "id": "b0b9ee9c06637ba2",
+        "type": "ui_switch",
+        "z": "08e6ddee028c6160",
+        "g": "217ba6281d73c1dc",
+        "name": "",
+        "label": "Nebulizador",
+        "tooltip": "",
+        "group": "ui_group_atuadores",
+        "order": 8,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "decouple": "false",
+        "topic": "neb",
+        "topicType": "str",
+        "style": "",
+        "onvalue": "true",
+        "onvalueType": "bool",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "false",
+        "offvalueType": "bool",
+        "officon": "",
+        "offcolor": "",
+        "animate": false,
+        "className": "",
+        "x": 170,
+        "y": 1020,
+        "wires": [
+            [
+                "40fefcbbd47fa0aa"
+            ]
+        ]
+    },
+    {
+        "id": "40fefcbbd47fa0aa",
+        "type": "function",
+        "z": "08e6ddee028c6160",
+        "g": "217ba6281d73c1dc",
+        "name": "Monta Comando JSON",
+        "func": "// Recupera o último estado conhecido dos atuadores\nconst estado = Object.assign({ v1: 0, v2: 0, asp: 0, neb: 0 }, global.get('estadoAtuadores') || {});\n\n// msg.topic indica qual atuador foi alterado (v1, v2, asp, neb)\n// msg.payload é true/false vindo do switch do dashboard\nestado[msg.topic] = msg.payload ? 1 : 0;\n\nglobal.set('estadoAtuadores', estado);\n\nmsg.payload = {\n    v1: estado.v1,\n    v2: estado.v2,\n    asp: estado.asp,\n    neb: estado.neb\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 960,
+        "wires": [
+            [
+                "b59c797e56019d47"
+            ]
+        ]
+    },
+    {
+        "id": "b59c797e56019d47",
+        "type": "mqtt out",
+        "z": "08e6ddee028c6160",
+        "g": "217ba6281d73c1dc",
+        "name": "aviario/no1/atuadores/cmd",
+        "topic": "aviario/no1/atuadores/cmd",
+        "qos": "1",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "application/json",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "cfg_mqtt",
+        "x": 700,
+        "y": 960,
+        "wires": []
+    },
+    {
+        "id": "f48ca5dcbff07f2d",
+        "type": "ui_switch",
+        "z": "08e6ddee028c6160",
+        "g": "a64d9b1831ee3ee3",
+        "name": "",
+        "label": "Modo Automático",
+        "tooltip": "Liga/desliga ajuste automático dos atuadores com base nos limites de temperatura, umidade e NH3",
+        "group": "ui_group_automacao",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "decouple": "false",
+        "topic": "modoAutomatico",
+        "topicType": "str",
+        "style": "",
+        "onvalue": "true",
+        "onvalueType": "bool",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "false",
+        "offvalueType": "bool",
+        "officon": "",
+        "offcolor": "",
+        "animate": false,
+        "className": "",
+        "x": 170,
+        "y": 1140,
+        "wires": [
+            [
+                "dca9751c73eb53c8"
+            ]
+        ]
+    },
+    {
+        "id": "dca9751c73eb53c8",
+        "type": "function",
+        "z": "08e6ddee028c6160",
+        "g": "a64d9b1831ee3ee3",
+        "name": "Define Modo Automático",
+        "func": "global.set('modoAutomatico', msg.payload === true);\nreturn null;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 1140,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "2e13dd54054a30ba",
+        "type": "telegram receiver",
+        "z": "08e6ddee028c6160",
+        "g": "56225f11184e9e7e",
+        "name": "Telegram - Comandos",
+        "bot": "cfg_telegram",
+        "saveDataDir": "",
+        "filterCommands": false,
+        "hasinput": false,
+        "inputs": 0,
+        "handleallupdates": false,
+        "handleprocessupdates": false,
+        "x": 170,
+        "y": 1280,
+        "wires": [
+            [
+                "acb022602412f325"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "acb022602412f325",
+        "type": "function",
+        "z": "08e6ddee028c6160",
+        "g": "56225f11184e9e7e",
+        "name": "Processa Comandos Telegram",
+        "func": "const texto = ((msg.payload && msg.payload.content) || '').trim().toLowerCase();\nconst chatId = msg.payload.chatId;\n\nconst estado = Object.assign({ v1: 0, v2: 0, asp: 0, neb: 0 }, global.get('estadoAtuadores') || {});\nconst ultimosSensores = global.get('ultimosSensores') || {};\n\nlet resposta = null;\nlet comando = false;\n\nswitch (texto) {\n    case '/status':\n        resposta = '📊 Status do Aviário\\n\\n' +\n          'Temp: ' + (ultimosSensores.temperatura ?? '--') + ' °C\\n' +\n          'Umidade: ' + (ultimosSensores.umidade ?? '--') + ' %\\n' +\n          'NH3: ' + (ultimosSensores.nh3_ppm ?? '--') + ' ppm\\n' +\n          'Pressão: ' + (ultimosSensores.pressao_pa ? Math.round(ultimosSensores.pressao_pa / 100) : '--') + ' hPa\\n\\n' +\n          'Ventilador 1: ' + (estado.v1 ? 'ON' : 'OFF') + '\\n' +\n          'Ventilador 2: ' + (estado.v2 ? 'ON' : 'OFF') + '\\n' +\n          'Aspersor: ' + (estado.asp ? 'ON' : 'OFF') + '\\n' +\n          'Nebulizador: ' + (estado.neb ? 'ON' : 'OFF') + '\\n\\n' +\n          'Modo automático: ' + (global.get('modoAutomatico') ? 'ATIVADO' : 'DESATIVADO');\n        break;\n    case '/v1_on':  estado.v1 = 1; comando = true; resposta = 'Ventilador 1 LIGADO'; break;\n    case '/v1_off': estado.v1 = 0; comando = true; resposta = 'Ventilador 1 DESLIGADO'; break;\n    case '/v2_on':  estado.v2 = 1; comando = true; resposta = 'Ventilador 2 LIGADO'; break;\n    case '/v2_off': estado.v2 = 0; comando = true; resposta = 'Ventilador 2 DESLIGADO'; break;\n    case '/asp_on':  estado.asp = 1; comando = true; resposta = 'Aspersor LIGADO'; break;\n    case '/asp_off': estado.asp = 0; comando = true; resposta = 'Aspersor DESLIGADO'; break;\n    case '/neb_on':  estado.neb = 1; comando = true; resposta = 'Nebulizador LIGADO'; break;\n    case '/neb_off': estado.neb = 0; comando = true; resposta = 'Nebulizador DESLIGADO'; break;\n    case '/help':\n    case '/start':\n        resposta = '🐔 Bot Aviário\\n\\nComandos disponíveis:\\n/status - leituras e estado atual\\n/v1_on /v1_off - Ventilador 1\\n/v2_on /v2_off - Ventilador 2\\n/asp_on /asp_off - Aspersor\\n/neb_on /neb_off - Nebulizador';\n        break;\n    default:\n        resposta = 'Comando não reconhecido. Envie /help para ver os comandos disponíveis.';\n}\n\nconst out1 = { payload: { type: 'message', content: resposta, chatId: chatId } };\nlet out2 = null;\n\nif (comando) {\n    global.set('estadoAtuadores', estado);\n    out2 = { payload: { v1: estado.v1, v2: estado.v2, asp: estado.asp, neb: estado.neb } };\n}\n\nreturn [out1, out2];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 430,
+        "y": 1280,
+        "wires": [
+            [
+                "b0510cb15227b142"
+            ],
+            [
+                "b59c797e56019d47"
+            ]
+        ]
+    },
+    {
+        "id": "b0510cb15227b142",
+        "type": "telegram sender",
+        "z": "08e6ddee028c6160",
+        "g": "56225f11184e9e7e",
+        "name": "Telegram - Resposta",
+        "bot": "cfg_telegram",
+        "haserroroutput": false,
+        "outputs": 1,
+        "x": 700,
+        "y": 1260,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "cfg_mqtt",
+        "type": "mqtt-broker",
+        "name": "Broker Local (Mosquitto)",
+        "broker": "localhost",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "cfg_influx",
+        "type": "influxdb",
+        "hostname": "localhost",
+        "port": "8086",
+        "protocol": "http",
+        "database": "aviario",
+        "name": "InfluxDB Aviario (1.x)",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "1.x",
+        "url": "http://localhost:8086",
+        "rejectUnauthorized": true
+    },
+    {
+        "id": "ui_group_sensores",
+        "type": "ui_group",
+        "name": "Sensores",
+        "tab": "ui_tab",
+        "order": 1,
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "cfg_telegram",
+        "type": "telegram bot",
+        "botname": "Max",
+        "usernames": "",
+        "chatids": "",
+        "baseapiurl": "https://api.telegram.org",
+        "testenvironment": false,
+        "updatemode": "polling",
+        "pollinterval": "300",
+        "usesocks": false,
+        "sockshost": "",
+        "socksport": "6",
+        "socksusername": "anonymous",
+        "sockspassword": "",
+        "bothost": "",
+        "botpath": "",
+        "localbothost": "",
+        "localbotport": "8443",
+        "publicbotport": "8443",
+        "privatekey": "",
+        "certificate": "",
+        "useselfsignedcertificate": false,
+        "sslterminated": false,
+        "verboselogging": false
+    },
+    {
+        "id": "ui_group_atuadores",
+        "type": "ui_group",
+        "name": "Atuadores",
+        "tab": "ui_tab",
+        "order": 2,
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "ui_group_automacao",
+        "type": "ui_group",
+        "name": "Automação",
+        "tab": "ui_tab",
+        "order": 3,
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "ui_tab",
+        "type": "ui_tab",
+        "name": "Aviário",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "e419d1c0dfa2e00d",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-contrib-influxdb": "0.7.0",
+            "node-red-dashboard": "3.6.6",
+            "node-red-contrib-telegrambot": "17.4.13",
+            "node-red-node-email": "5.2.4"
+        }
+    }
+]
