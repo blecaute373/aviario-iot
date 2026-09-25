@@ -38,5 +38,9 @@ backend/telegraf/telegraf.conf.local
 node_modules/
 npm-debug.log
 
+# Arquivos de referência externos temporários
+Estufa-Dashboard-TCC.rar
+Estufa-Dashboard-TCC/
+
 # Logs
 *.log

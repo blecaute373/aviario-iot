@@ -10,369 +10,976 @@
     }
   ],
   "__requires": [
-    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" },
-    { "type": "datasource", "id": "influxdb", "name": "InfluxDB", "version": "1.0.0" },
-    { "type": "panel", "id": "gauge", "name": "Gauge", "version": "" },
-    { "type": "panel", "id": "stat", "name": "Stat", "version": "" },
-    { "type": "panel", "id": "timeseries", "name": "Time series", "version": "" }
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "10.0.0"
+    },
+    {
+      "type": "datasource",
+      "id": "influxdb",
+      "name": "InfluxDB",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "gauge",
+      "name": "Gauge",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "stat",
+      "name": "Stat",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    }
   ],
-  "annotations": { "list": [] },
-  "description": "Monitoramento do aviário — sensores e atuadores",
+  "annotations": {
+    "list": []
+  },
+  "description": "Monitoramento do aviário — sensores e atuadores (InfluxDB 1.x / InfluxQL)",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
   "links": [],
   "panels": [
-
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
       "id": 100,
       "title": "Sensores — Nó 1",
       "type": "row"
     },
-
     {
       "id": 1,
       "title": "Temperatura",
       "type": "gauge",
-      "gridPos": { "h": 7, "w": 4, "x": 0, "y": 1 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB_AVIARIO}"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "celsius",
-          "min": 0, "max": 50,
+          "min": 0,
+          "max": 50,
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "blue",   "value": null },
-              { "color": "green",  "value": 15 },
-              { "color": "yellow", "value": 32 },
-              { "color": "red",    "value": 38 }
+              {
+                "color": "blue",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 15
+              },
+              {
+                "color": "yellow",
+                "value": 32
+              },
+              {
+                "color": "red",
+                "value": 38
+              }
             ]
           }
         },
         "overrides": []
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "showThresholdLabels": true, "showThresholdMarkers": true },
-      "targets": [{
-        "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
-        "query": "from(bucket: \"aviario\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r._measurement == \"sensores\" and r._field == \"temperatura\")\n  |> last()",
-        "refId": "A"
-      }]
-    },
-
-    {
-      "id": 2,
-      "title": "Umidade",
-      "type": "gauge",
-      "gridPos": { "h": 7, "w": 4, "x": 4, "y": 1 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "min": 0, "max": 100,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red",    "value": null },
-              { "color": "green",  "value": 50 },
-              { "color": "yellow", "value": 75 },
-              { "color": "red",    "value": 85 }
-            ]
-          }
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
         },
-        "overrides": []
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "showThresholdLabels": true, "showThresholdMarkers": true },
-      "targets": [{
-        "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
-        "query": "from(bucket: \"aviario\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r._measurement == \"sensores\" and r._field == \"umidade\")\n  |> last()",
-        "refId": "A"
-      }]
-    },
-
-    {
-      "id": 3,
-      "title": "NH₃ (Amônia)",
-      "type": "gauge",
-      "gridPos": { "h": 7, "w": 4, "x": 8, "y": 1 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ppm",
-          "min": 0, "max": 100,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green",  "value": null },
-              { "color": "yellow", "value": 20 },
-              { "color": "orange", "value": 25 },
-              { "color": "red",    "value": 35 }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "showThresholdLabels": true, "showThresholdMarkers": true },
-      "targets": [{
-        "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
-        "query": "from(bucket: \"aviario\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r._measurement == \"sensores\" and r._field == \"nh3_ppm\")\n  |> last()",
-        "refId": "A"
-      }]
-    },
-
-    {
-      "id": 4,
-      "title": "Última leitura dos sensores",
-      "type": "stat",
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 1 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
-        },
-        "overrides": [
-          { "matcher": { "id": "byName", "options": "temperatura" }, "properties": [{ "id": "unit", "value": "celsius" }] },
-          { "matcher": { "id": "byName", "options": "umidade" },     "properties": [{ "id": "unit", "value": "percent" }] },
-          { "matcher": { "id": "byName", "options": "nh3_ppm" },     "properties": [{ "id": "unit", "value": "ppm" }] },
-          { "matcher": { "id": "byName", "options": "pressao_pa" },  "properties": [{ "id": "unit", "value": "pressurehpa" }] }
-        ]
-      },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "horizontal", "textMode": "auto", "colorMode": "background" },
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
-          "query": "from(bucket: \"aviario\")\n  |> range(start: -10m)\n  |> filter(fn: (r) => r._measurement == \"sensores\")\n  |> last()\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB_AVIARIO}"
+          },
+          "query": "SELECT last(\"temperatura\") FROM \"sensores\" WHERE $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
           "refId": "A"
         }
       ]
     },
-
+    {
+      "id": 2,
+      "title": "Umidade",
+      "type": "gauge",
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB_AVIARIO}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 50
+              },
+              {
+                "color": "yellow",
+                "value": 75
+              },
+              {
+                "color": "red",
+                "value": 85
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB_AVIARIO}"
+          },
+          "query": "SELECT last(\"umidade\") FROM \"sensores\" WHERE $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "NH₃ (Amônia)",
+      "type": "gauge",
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB_AVIARIO}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ppm",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 20
+              },
+              {
+                "color": "orange",
+                "value": 25
+              },
+              {
+                "color": "red",
+                "value": 35
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB_AVIARIO}"
+          },
+          "query": "SELECT last(\"nh3_ppm\") FROM \"sensores\" WHERE $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Última leitura dos sensores",
+      "type": "stat",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB_AVIARIO}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "temperatura"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "celsius"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "umidade"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "nh3_ppm"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ppm"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "pressao_pa"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "pressurehpa"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "background"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB_AVIARIO}"
+          },
+          "query": "SELECT last(\"temperatura\") AS \"temperatura\", last(\"umidade\") AS \"umidade\", last(\"nh3_ppm\") AS \"nh3_ppm\", last(\"pressao_pa\") AS \"pressao_pa\" FROM \"sensores\" WHERE $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 8 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
       "id": 101,
       "title": "Histórico — Sensores",
       "type": "row"
     },
-
     {
       "id": 5,
       "title": "Temperatura (histórico)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 9 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 9
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB_AVIARIO}"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "celsius",
-          "color": { "mode": "palette-classic" },
-          "thresholds": { "mode": "absolute", "steps": [
-            { "color": "green", "value": null },
-            { "color": "yellow", "value": 32 },
-            { "color": "red", "value": 38 }
-          ]},
-          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 32
+              },
+              {
+                "color": "red",
+                "value": 38
+              }
+            ]
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
         },
         "overrides": []
       },
-      "options": { "tooltip": { "mode": "single" }, "legend": { "displayMode": "list", "placement": "bottom" } },
-      "targets": [{
-        "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
-        "query": "from(bucket: \"aviario\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"sensores\" and r._field == \"temperatura\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
-        "refId": "A"
-      }]
+      "options": {
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB_AVIARIO}"
+          },
+          "query": "SELECT mean(\"temperatura\") FROM \"sensores\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A"
+        }
+      ]
     },
-
     {
       "id": 6,
       "title": "Umidade (histórico)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 9 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 9
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB_AVIARIO}"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "percent",
-          "color": { "mode": "palette-classic" },
-          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
         },
         "overrides": []
       },
-      "options": { "tooltip": { "mode": "single" }, "legend": { "displayMode": "list", "placement": "bottom" } },
-      "targets": [{
-        "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
-        "query": "from(bucket: \"aviario\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"sensores\" and r._field == \"umidade\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
-        "refId": "A"
-      }]
+      "options": {
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB_AVIARIO}"
+          },
+          "query": "SELECT mean(\"umidade\") FROM \"sensores\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A"
+        }
+      ]
     },
-
     {
       "id": 7,
       "title": "NH₃ — Amônia (histórico)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 9 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 9
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB_AVIARIO}"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "ppm",
-          "color": { "mode": "palette-classic" },
-          "thresholds": { "mode": "absolute", "steps": [
-            { "color": "green", "value": null },
-            { "color": "yellow", "value": 20 },
-            { "color": "red", "value": 25 }
-          ]},
-          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 20
+              },
+              {
+                "color": "red",
+                "value": 25
+              }
+            ]
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
         },
         "overrides": []
       },
-      "options": { "tooltip": { "mode": "single" }, "legend": { "displayMode": "list", "placement": "bottom" } },
-      "targets": [{
-        "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
-        "query": "from(bucket: \"aviario\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"sensores\" and r._field == \"nh3_ppm\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
-        "refId": "A"
-      }]
+      "options": {
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB_AVIARIO}"
+          },
+          "query": "SELECT mean(\"nh3_ppm\") FROM \"sensores\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A"
+        }
+      ]
     },
-
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
       "id": 102,
       "title": "Atuadores — Estado Atual",
       "type": "row"
     },
-
     {
       "id": 10,
       "title": "Ventilador 1",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 18 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 18
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB_AVIARIO}"
+      },
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            { "type": "value", "options": { "0": { "text": "DESLIGADO", "color": "red" }, "1": { "text": "LIGADO", "color": "green" } } }
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DESLIGADO",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "LIGADO",
+                  "color": "green"
+                }
+              }
+            }
           ],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] },
-          "color": { "mode": "thresholds" }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
         },
         "overrides": []
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "auto" },
-      "targets": [{
-        "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
-        "query": "from(bucket: \"aviario\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r._measurement == \"atuadores\" and r._field == \"v1\")\n  |> last()",
-        "refId": "A"
-      }]
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB_AVIARIO}"
+          },
+          "query": "SELECT last(\"v1\") FROM \"atuadores\" WHERE $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A"
+        }
+      ]
     },
-
     {
       "id": 11,
       "title": "Ventilador 2",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 18 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 18
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB_AVIARIO}"
+      },
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            { "type": "value", "options": { "0": { "text": "DESLIGADO", "color": "red" }, "1": { "text": "LIGADO", "color": "green" } } }
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DESLIGADO",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "LIGADO",
+                  "color": "green"
+                }
+              }
+            }
           ],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] },
-          "color": { "mode": "thresholds" }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
         },
         "overrides": []
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "auto" },
-      "targets": [{
-        "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
-        "query": "from(bucket: \"aviario\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r._measurement == \"atuadores\" and r._field == \"v2\")\n  |> last()",
-        "refId": "A"
-      }]
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB_AVIARIO}"
+          },
+          "query": "SELECT last(\"v2\") FROM \"atuadores\" WHERE $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A"
+        }
+      ]
     },
-
     {
       "id": 12,
       "title": "Aspersor",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 18 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 18
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB_AVIARIO}"
+      },
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            { "type": "value", "options": { "0": { "text": "DESLIGADO", "color": "red" }, "1": { "text": "LIGADO", "color": "green" } } }
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DESLIGADO",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "LIGADO",
+                  "color": "green"
+                }
+              }
+            }
           ],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] },
-          "color": { "mode": "thresholds" }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
         },
         "overrides": []
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "auto" },
-      "targets": [{
-        "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
-        "query": "from(bucket: \"aviario\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r._measurement == \"atuadores\" and r._field == \"asp\")\n  |> last()",
-        "refId": "A"
-      }]
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB_AVIARIO}"
+          },
+          "query": "SELECT last(\"asp\") FROM \"atuadores\" WHERE $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A"
+        }
+      ]
     },
-
     {
       "id": 13,
       "title": "Nebulizador",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 18 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 18
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB_AVIARIO}"
+      },
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            { "type": "value", "options": { "0": { "text": "DESLIGADO", "color": "red" }, "1": { "text": "LIGADO", "color": "green" } } }
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DESLIGADO",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "LIGADO",
+                  "color": "green"
+                }
+              }
+            }
           ],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] },
-          "color": { "mode": "thresholds" }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
         },
         "overrides": []
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "auto" },
-      "targets": [{
-        "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
-        "query": "from(bucket: \"aviario\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r._measurement == \"atuadores\" and r._field == \"neb\")\n  |> last()",
-        "refId": "A"
-      }]
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB_AVIARIO}"
+          },
+          "query": "SELECT last(\"neb\") FROM \"atuadores\" WHERE $timeFilter",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A"
+        }
+      ]
     },
-
     {
       "id": 14,
       "title": "Histórico de acionamentos",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 22 },
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB_AVIARIO}"
+      },
       "fieldConfig": {
         "defaults": {
-          "min": 0, "max": 1,
-          "custom": { "lineWidth": 2, "fillOpacity": 30, "drawStyle": "line", "lineInterpolation": "stepAfter" },
+          "min": 0,
+          "max": 1,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 30,
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter"
+          },
           "mappings": [
-            { "type": "value", "options": { "0": { "text": "OFF" }, "1": { "text": "ON" } } }
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "OFF"
+                },
+                "1": {
+                  "text": "ON"
+                }
+              }
+            }
           ]
         },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "v1"  }, "properties": [{ "id": "displayName", "value": "Ventilador 1" }] },
-          { "matcher": { "id": "byName", "options": "v2"  }, "properties": [{ "id": "displayName", "value": "Ventilador 2" }] },
-          { "matcher": { "id": "byName", "options": "asp" }, "properties": [{ "id": "displayName", "value": "Aspersor" }] },
-          { "matcher": { "id": "byName", "options": "neb" }, "properties": [{ "id": "displayName", "value": "Nebulizador" }] }
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "v1"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Ventilador 1"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "v2"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Ventilador 2"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "asp"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Aspersor"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "neb"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Nebulizador"
+              }
+            ]
+          }
         ]
       },
-      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
-      "targets": [{
-        "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB_AVIARIO}" },
-        "query": "from(bucket: \"aviario\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"atuadores\")\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")",
-        "refId": "A"
-      }]
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB_AVIARIO}"
+          },
+          "query": "SELECT last(\"v1\") AS \"v1\", last(\"v2\") AS \"v2\", last(\"asp\") AS \"asp\", last(\"neb\") AS \"neb\" FROM \"atuadores\" WHERE $timeFilter GROUP BY time($__interval) fill(previous)",
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "refId": "A"
+        }
+      ]
     }
-
   ],
   "refresh": "30s",
   "schemaVersion": 38,
-  "tags": ["aviario", "iot"],
-  "templating": { "list": [] },
-  "time": { "from": "now-6h", "to": "now" },
+  "tags": [
+    "aviario",
+    "iot"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
   "timepicker": {},
   "timezone": "America/Sao_Paulo",
   "title": "Aviário — Monitoramento",

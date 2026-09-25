@@ -58,7 +58,7 @@ aviario-iot/
 │   ├── gateway-esp32/          # PlatformIO + Arduino — src/config.h.example (config.h não versionado)
 │   └── no-atuador-esp32/       # PlatformIO + Arduino — src/config.h.example (config.h não versionado)
 ├── backend/
-│   ├── setup_servidor.sh       # instala InfluxDB 2.x + Telegraf + Grafana
+│   ├── setup_servidor.sh       # instala InfluxDB 1.8.x + Telegraf + Grafana
 │   ├── telegraf/telegraf.conf
 │   └── grafana/aviario_dashboard.json
 ├── flows/
@@ -142,7 +142,7 @@ O dashboard é **estático** (sem build): o `vercel.json` publica a pasta `publi
 - **Firmware**: C bare-metal (AVR-GCC, ATtiny85) e C++/Arduino (ESP32), build via PlatformIO
 - **Rádio**: LoRa 915 MHz (SX1276/RFM95W — RadioLib nos ESP32, driver raw no ATtiny85)
 - **Mensageria**: MQTT (Mosquitto)
-- **Backend**: Telegraf → InfluxDB 2.x → Grafana (instalação via Bash)
+- **Backend**: Telegraf → InfluxDB 1.x (InfluxQL) → Grafana (instalação via Bash)
 - **Supervisão**: Node-RED (`flows/flows.json`) — dashboard, alertas Telegram/Gmail e automação; gravação em InfluxDB 1.x (ver [`docs/NODERED.md`](docs/NODERED.md))
 - **Dashboard web**: HTML/CSS/JS vanilla + Chart.js (sem build step) — `public/`, deploy estático no Vercel (ver [`docs/DASHBOARD.md`](docs/DASHBOARD.md))
 
@@ -152,10 +152,10 @@ O dashboard é **estático** (sem build): o `vercel.json` publica a pasta `publi
 [Nó Sensor: ATtiny85] --LoRa (T:xx.x|U:xx|P:xxx|A:xx.x)--> [Gateway: ESP32] --MQTT--> [Mosquitto]
                                                                    ^  |                     |
                                                           LoRa (JSON) |                     v
-                                                                   |  v                [Telegraf]
+                                                                   |  v          [Telegraf / Node-RED]
                                                         [Nó Atuador: ESP32]                 |
                                                         4 relés (2 vent.,                    v
-                                                        aspersor, nebulizador)         [InfluxDB 2.x]
+                                                        aspersor, nebulizador)         [InfluxDB 1.x]
                                                                                               |
                                                                                               v
                                                                                         [Grafana]
@@ -164,7 +164,7 @@ O dashboard é **estático** (sem build): o `vercel.json` publica a pasta `publi
 - **Nó sensor (ATtiny85)**: lê temperatura/umidade/pressão (BME280 via I²C bit-bang) e NH₃ (MICS6814 via ADC). Firmware bare-metal (AVR-GCC puro, sem framework Arduino). Transmite via LoRa payload texto: `T:25.5|U:60|P:101325|A:12.3`.
 - **Gateway (ESP32)**: escuta LoRa de ambos os nós, identifica a origem pelo primeiro caractere do payload (`T` = sensor, `{` = atuador), publica no MQTT e retransmite comandos MQTT→LoRa para o atuador. Framework Arduino + RadioLib + PubSubClient + ArduinoJson.
 - **Nó atuador (ESP32)**: controla 4 relés (ventilador 1, ventilador 2, aspersor, nebulizador). Recebe comandos tanto via MQTT direto quanto via LoRa (fallback sem WiFi), payload JSON `{"v1":1,"v2":0,"asp":1,"neb":0}`. Publica seu estado de volta.
-- **Backend**: MQTT (Mosquitto) → Telegraf → InfluxDB 2.x → Grafana, com script de instalação automatizada (`backend/setup_servidor.sh`) para Debian 12 / Ubuntu 22.04.
+- **Backend**: MQTT (Mosquitto) → Telegraf → InfluxDB 1.x → Grafana, com script de instalação automatizada (`backend/setup_servidor.sh`) para Debian 12 / Ubuntu 22.04.
 
 Detalhes completos em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) e [`docs/PROTOCOLO.md`](docs/PROTOCOLO.md).
 

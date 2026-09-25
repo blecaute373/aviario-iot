@@ -203,7 +203,7 @@ O comando sai pelo `mqtt out` **`aviario/no1/atuadores/cmd`** — **QoS 1**, **r
 
 O fluxo **não define tags explicitamente** (apenas measurement + campos); o carimbo de tempo é do momento da gravação. Este banco serve a consultas históricas externas — o dashboard do Node-RED **não** exibe gráficos de histórico.
 
-⚠️ Contexto do projeto: existe em paralelo o pipeline `Telegraf → InfluxDB 2.x → Grafana` (dashboard pronto em `backend/grafana/`); este fluxo grava no **InfluxDB 1.x** — são caminhos distintos, vale alinhar qual é o oficial.
+O pipeline de dados do projeto está padronizado em **InfluxDB 1.x (InfluxQL)**: tanto o Telegraf quanto o Node-RED gravam no mesmo database `aviario`, compartilhando a mesma base para os painéis do Grafana (`backend/grafana/aviario_dashboard.json`).
 
 ## 8. Dashboard
 
@@ -286,7 +286,7 @@ Temp: X °C | Umid: Y % | NH3: Z ppm | Pressão: W hPa
 3. Switches do dashboard **não sincronizam** com o estado real (nada ligado às suas entradas); os textos de estado sincronizam;
 4. Alertas **sem debounce** — podem repetir a cada leitura;
 5. **Chat ID e e-mail reais embutidos** no fluxo (`6163223530`, `deivisson.linojr@gmail.com`) — se o repositório for publicado, considere parametrizar/mascarar;
-6. **Divergências de contexto** do restante do projeto: aqui o broker é `localhost:1883` e o banco é **InfluxDB 1.x**, enquanto o repositório traz `192.168.0.3` e o pipeline **Telegraf → InfluxDB 2.x → Grafana** — caminhos paralelos, vale unificar ou explicar os dois;
+6. **Conexões do broker**: aqui o broker padrão no export é `localhost:1883`, enquanto na máquina de teste/cenário distribuído o gateway pode publicar em `192.168.0.3` — ajuste conforme a topologia da rede local;
 7. ⚠️ No restante do projeto alguns valores do gateway aparecem como **string** (ex.: `"temperatura":"25.5"`); se ocorrer no ambiente real, o InfluxDB gravaria campos de texto (as comparações JS continuam funcionando por coerção) — vale conferir.
 
 **Reprodução:** importe `flows/flows.json` no Node-RED (Menu → Import) e instale os 4 módulos listados no início deste documento.

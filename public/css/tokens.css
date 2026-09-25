@@ -1,25 +1,57 @@
         :root {
-            --bg-primary: #0a0d14;
-            --bg-secondary: #111520;
-            --bg-card: #131824;
-            --text-primary: #e8eaf0;
-            --text-secondary: #6b7280;
-            --accent-green: #10e878;
-            --accent-red: #ff5252;
-            --accent-yellow: #fbbf24;
-            --accent-blue: #38bdf8;
-            --accent-purple: #a78bfa;
-            --accent-cyan: #22d3ee;
-            --accent-orange: #fb923c;
-            --border-color: #1e2535;
-            --border-bright: #2a3347;
-            --fan-color: #22d3ee;
-            --spray-color: #38bdf8;
-            --exhaust-color: #a78bfa;
-            --curtain-color: #fb923c;
-            --font-body: 'DM Sans', sans-serif;
-            --font-mono: 'JetBrains Mono', monospace;
+            /* Fundo escuro profundo / painel industrial */
+            --bg-primary: #070a10;
+            --bg-secondary: #0d121d;
+            --bg-card: rgba(16, 23, 36, 0.78);
+            --bg-card-solid: #111726;
+            --inset: rgba(0, 0, 0, 0.35);
+
+            /* Textos com hierarquia refinada */
+            --text-primary: #f0f4f8;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+
+            /* Paleta temática dos sensores */
+            --temp-accent: #f87171;
+            --temp-gradient: linear-gradient(90deg, #dc2626, #f87171);
+            --umid-accent: #38bdf8;
+            --umid-gradient: linear-gradient(90deg, #0284c7, #38bdf8);
+            --pres-accent: #34d399;
+            --pres-gradient: linear-gradient(90deg, #059669, #34d399);
+            --nh3-accent: #fbbf24;
+            --nh3-gradient: linear-gradient(90deg, #d97706, #fbbf24);
+
+            /* Cores de atuadores dedicados */
+            --act-v1: #00e5ff;
+            --act-v1-glow: rgba(0, 229, 255, 0.35);
+            --act-v2: #38bdf8;
+            --act-v2-glow: rgba(56, 189, 248, 0.35);
+            --act-asp: #60a5fa;
+            --act-asp-glow: rgba(96, 165, 250, 0.35);
+            --act-neb: #a78bfa;
+            --act-neb-glow: rgba(167, 139, 250, 0.35);
+
+            /* Estados semânticos técnicos */
+            --state-ok: #10e878;
+            --state-warn: #fbbf24;
+            --state-crit: #f87171;
+            --state-idle: #64748b;
+
+            /* Bordas e linhas de brilho */
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-bright: rgba(255, 255, 255, 0.16);
+            --border-strong: rgba(56, 189, 248, 0.45);
+
+            /* Tipografia */
+            --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: var(--font-body); background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px 18px 40px; }

@@ -34,12 +34,12 @@ Monitoramento ambiental (temperatura, umidade, pressão, NH₃) e controle autom
 ## Pipeline de dados (backend)
 
 ```
-MQTT (Mosquitto) → Telegraf → InfluxDB 2.x → Grafana
+MQTT (Mosquitto) → Telegraf / Node-RED → InfluxDB 1.x (InfluxQL) → Grafana
 ```
 
-- `backend/setup_servidor.sh` automatiza a instalação de InfluxDB 2.x, Telegraf e Grafana em Debian 12 / Ubuntu 22.04, incluindo criação do bucket, datasource no Grafana e config inicial do Telegraf.
-- `backend/telegraf/telegraf.conf` — dois `inputs.mqtt_consumer`: um para `aviario/no1/sensores`, outro para `aviario/no1/atuadores/estado`; ambos em formato JSON, gravados no InfluxDB 2.x via `outputs.influxdb_v2`.
-- `backend/grafana/aviario_dashboard.json` — dashboard pronto para importar no Grafana (painéis de sensores e atuadores do "Nó 1").
+- `backend/setup_servidor.sh` automatiza a instalação de InfluxDB 1.8.x, Telegraf e Grafana em Debian 12 / Ubuntu 22.04, incluindo criação da base `aviario`, datasource InfluxQL no Grafana e config do Telegraf.
+- `backend/telegraf/telegraf.conf` — dois `inputs.mqtt_consumer`: um para `aviario/no1/sensores`, outro para `aviario/no1/atuadores/estado`; ambos em formato JSON, gravados no InfluxDB 1.x via `outputs.influxdb` (database `aviario`).
+- `backend/grafana/aviario_dashboard.json` — dashboard pronto para importar no Grafana (painéis de sensores e atuadores do "Nó 1", 100% queries InfluxQL).
 
 ## Dashboard web (AEREM PLS) — `public/`
 

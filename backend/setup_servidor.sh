@@ -1,18 +1,16 @@
 #!/bin/bash
 # =============================================================================
 # setup_servidor.sh
-# Instala e configura: InfluxDB 2.x, Telegraf, Grafana
+# Instala e configura: InfluxDB 1.8.x, Telegraf, Grafana
 # Sistema: Ubuntu 22.04 / Debian 12
 # =============================================================================
 
 set -e  # para na primeira linha com erro
 
 # ── Variáveis — edite antes de rodar ─────────────────────────────────────────
+INFLUX_DB="aviario"
 INFLUX_USER="admin"
 INFLUX_PASS="SuaSenhaForte123"   # mínimo 8 caracteres
-INFLUX_ORG="aviario"
-INFLUX_BUCKET="aviario"
-INFLUX_RETENTION="365d"          # quanto tempo guardar os dados
 
 GRAFANA_ADMIN_PASS="GrafanaSenha123"
 
@@ -26,59 +24,44 @@ apt-get update -qq
 apt-get install -y curl wget gnupg apt-transport-https software-properties-common
 
 # =============================================================================
-# 2. INFLUXDB 2.x
+# 2. INFLUXDB 1.8.x (InfluxQL, sem tokens/buckets v2)
 # =============================================================================
-echo ">>> Instalando InfluxDB 2.x..."
+echo ">>> Instalando InfluxDB 1.8.x..."
 wget -q https://repos.influxdata.com/influxdata-archive_compat.key
 gpg --dearmor < influxdata-archive_compat.key > /etc/apt/trusted.gpg.d/influxdata-archive_compat.gpg
 echo "deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive_compat.gpg] https://repos.influxdata.com/debian stable main" \
   > /etc/apt/sources.list.d/influxdata.list
 
 apt-get update -qq
-apt-get install -y influxdb2 influxdb2-cli
+apt-get install -y influxdb
 
 systemctl enable influxdb
 systemctl start influxdb
 
 sleep 3  # aguarda o serviço subir
 
-echo ">>> Configurando InfluxDB..."
-influx setup \
-  --username  "$INFLUX_USER" \
-  --password  "$INFLUX_PASS" \
-  --org       "$INFLUX_ORG" \
-  --bucket    "$INFLUX_BUCKET" \
-  --retention "$INFLUX_RETENTION" \
-  --force
-
-# Captura o token gerado
-INFLUX_TOKEN=$(influx auth list --json | python3 -c \
-  "import sys,json; auths=json.load(sys.stdin); print(auths[0]['token'])")
-
-echo ""
-echo ">>> TOKEN INFLUXDB (salve em local seguro):"
-echo "$INFLUX_TOKEN"
-echo ""
+echo ">>> Criando banco e usuário no InfluxDB 1.x..."
+influx -execute "CREATE DATABASE \"${INFLUX_DB}\""
+influx -execute "CREATE USER \"${INFLUX_USER}\" WITH PASSWORD '${INFLUX_PASS}' WITH ALL PRIVILEGES"
 
 # =============================================================================
-# 3. TELEGRAF
+# 3. TELEGRAF (outputs.influxdb 1.x)
 # =============================================================================
 echo ">>> Instalando Telegraf..."
 apt-get install -y telegraf
 
-# Usa o telegraf.conf do projeto (copie para o servidor primeiro)
-# ou gera um mínimo inline:
+# Configuração do Telegraf para InfluxDB 1.x:
 cat > /etc/telegraf/telegraf.d/aviario.conf << EOF
 [agent]
   interval       = "10s"
   flush_interval = "10s"
   hostname       = "aviario-server"
 
-[[outputs.influxdb_v2]]
-  urls         = ["http://localhost:8086"]
-  token        = "${INFLUX_TOKEN}"
-  organization = "${INFLUX_ORG}"
-  bucket       = "${INFLUX_BUCKET}"
+[[outputs.influxdb]]
+  urls     = ["http://localhost:8086"]
+  database = "${INFLUX_DB}"
+  username = "${INFLUX_USER}"
+  password = "${INFLUX_PASS}"
 
 [[inputs.mqtt_consumer]]
   servers     = ["tcp://${MQTT_BROKER_IP}:1883"]
@@ -105,7 +88,7 @@ systemctl enable telegraf
 systemctl restart telegraf
 
 # =============================================================================
-# 4. GRAFANA
+# 4. GRAFANA (Datasource InfluxQL InfluxDB 1.x)
 # =============================================================================
 echo ">>> Instalando Grafana..."
 wget -q -O /etc/apt/keyrings/grafana.gpg \
@@ -127,7 +110,7 @@ curl -s -X PUT \
   -d "{\"password\":\"${GRAFANA_ADMIN_PASS}\"}" \
   http://admin:admin@localhost:3000/api/user/password > /dev/null
 
-# Adiciona datasource InfluxDB no Grafana via API
+# Adiciona datasource InfluxDB 1.x (InfluxQL) no Grafana via API
 curl -s -X POST \
   -H "Content-Type: application/json" \
   -u "admin:${GRAFANA_ADMIN_PASS}" \
@@ -137,22 +120,20 @@ curl -s -X POST \
     \"type\":      \"influxdb\",
     \"url\":       \"http://localhost:8086\",
     \"access\":    \"proxy\",
-    \"jsonData\": {
-      \"version\":      \"Flux\",
-      \"organization\":  \"${INFLUX_ORG}\",
-      \"defaultBucket\": \"${INFLUX_BUCKET}\",
-      \"tlsSkipVerify\": true
-    },
+    \"database\":  \"${INFLUX_DB}\",
+    \"user\":      \"${INFLUX_USER}\",
     \"secureJsonData\": {
-      \"token\": \"${INFLUX_TOKEN}\"
-    }
+      \"password\": \"${INFLUX_PASS}\"
+    },
+    \"isDefault\": true
   }" > /dev/null
 
 echo ""
 echo "============================================================"
-echo "  INSTALAÇÃO CONCLUÍDA"
+echo "  INSTALAÇÃO CONCLUÍDA (INFLUXDB 1.x / TELEGRAF / GRAFANA)"
 echo "============================================================"
 echo "  InfluxDB  → http://SEU_IP:8086"
+echo "             banco:   ${INFLUX_DB}"
 echo "             usuário: ${INFLUX_USER}"
 echo "             senha:   ${INFLUX_PASS}"
 echo ""
@@ -160,7 +141,7 @@ echo "  Grafana   → http://SEU_IP:3000"
 echo "             usuário: admin"
 echo "             senha:   ${GRAFANA_ADMIN_PASS}"
 echo ""
-echo "  Token InfluxDB salvo em: /etc/telegraf/telegraf.d/aviario.conf"
+echo "  Telegraf  → configurado em /etc/telegraf/telegraf.d/aviario.conf"
 echo "============================================================"
 echo ""
 echo "  Próximo passo: importe o dashboard"

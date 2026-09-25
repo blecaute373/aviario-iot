@@ -68,3 +68,13 @@ test('flows/flows.json é um array válido com 45 entradas', () => {
 test('vercel.json é JSON válido', () => {
   JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
 });
+
+test('public: elementos do novo dashboard do Aviário IoT estão presentes', () => {
+  const html = fs.readFileSync(path.join(PUB, 'index.html'), 'utf8');
+  assert.ok(html.includes('AVIÁRIO IoT'), 'título AVIÁRIO IoT ausente');
+  assert.ok(html.includes('valTemp') && html.includes('valUmid') && html.includes('valPres') && html.includes('valNh3'), 'sensores essenciais ausentes no html');
+  assert.ok(html.includes('btn-on-v1') && html.includes('btn-on-v2') && html.includes('btn-on-asp') && html.includes('btn-on-neb'), 'atuadores reais ausentes');
+  assert.ok(html.includes('btnModoAuto'), 'controle mestre de modo automático ausente');
+  assert.ok(!html.toLowerCase().includes('thingspeak'), 'ThingSpeak não deve estar no HTML do Aviário');
+});
+
