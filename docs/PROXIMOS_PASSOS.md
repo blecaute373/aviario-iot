@@ -15,6 +15,7 @@
 3. Trocar as credenciais placeholder pelas reais — no firmware, em `firmware/*/src/config.h` (copiado de `config.h.example`, fora do Git); no backend, `INFLUX_PASS`/`GRAFANA_ADMIN_PASS` no `setup_servidor.sh` — sem commitar os valores reais.
 4. Confirmar se o `SENSOR_TIMEOUT_MS` (ou equivalente) ainda é necessário/está presente na versão atual do gateway — não localizado no código revisado desta vez.
 5. Unificar/decidir o pipeline de dados oficial: supervisão Node-RED → InfluxDB 1.x (ver `docs/NODERED.md`) versus backend Telegraf → InfluxDB 2.x → Grafana (`backend/`) — hoje são caminhos paralelos.
+6. Dashboard AEREM PLS (`public/`): evoluir o login local (hoje demo) para autenticação real, transformar em PWA instalável e integrar aos dados reais do ESP32 (o modo Simulação é o padrão fora da rede local).
 
 ## Registrado antes do envio do código-fonte (reverificar — pode estar desatualizado)
 

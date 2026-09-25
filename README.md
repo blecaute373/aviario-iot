@@ -1,8 +1,20 @@
-# Aviário — Sistema IoT de Monitoramento e Controle Ambiental
+# 🐔 Aviário IoT — Sistema de Monitoramento e Controle Ambiental (AEREM PLS)
 
-Sistema IoT completo de monitoramento ambiental e controle para um aviário (galpão avícola), com leitura de temperatura, umidade, pressão e amônia (NH₃), e acionamento automático de 4 atuadores (2 ventiladores, aspersor, nebulizador) via LoRa + MQTT.
+Sistema IoT completo de monitoramento ambiental e controle para um aviário (galpão avícola): leitura de temperatura, umidade, pressão e amônia (NH₃) por nós LoRa (ATtiny85/ESP32), supervisão via Node-RED (alertas Telegram/Gmail + automação) e **dashboard web "AEREM PLS"** (modos Simulação/Real) com deploy estático no Vercel.
 
 ## Início Rápido
+
+### Dashboard web — AEREM PLS (5 minutos)
+
+```bash
+# 1. Servir localmente (só precisa do Node.js — sem dependências)
+npm run serve
+# 2. Abra http://localhost:3000
+# 3. Primeiro acesso: clique em "Configurar usuário e senha" (login local, por navegador)
+# 4. O modo "Simulação" já vem ativo; para dados reais use o ⚙️ e informe IP/porta do ESP32/broker
+```
+
+Sem Node.js? Basta abrir `public/index.html` direto no navegador (modo Simulação). Detalhes (modos, API esperada, deploy): [`docs/DASHBOARD.md`](docs/DASHBOARD.md).
 
 ### Firmware (VS Code + PlatformIO) — repetir para cada nó
 
@@ -31,7 +43,15 @@ Depois, importe `backend/grafana/aviario_dashboard.json` no Grafana (Dashboards 
 ## Estrutura do Projeto
 
 ```
-aviario/
+aviario-iot/
+├── .github/
+│   ├── dependabot.yml
+│   └── workflows/ci.yml        # check → test → audit
+├── public/                     # dashboard web AEREM PLS (deploy Vercel)
+│   ├── index.html
+│   ├── css/                    # tokens, base, login, dashboard
+│   ├── js/                     # config, auth, zoom, mock, dashboard
+│   └── assets/                 # logo-aerem.png, logo-baap.png
 ├── firmware/
 │   ├── README.md               # como compilar/gravar cada nó
 │   ├── no-sensor-attiny85/     # bare-metal AVR-GCC — src/main.cpp
@@ -43,6 +63,10 @@ aviario/
 │   └── grafana/aviario_dashboard.json
 ├── flows/
 │   └── flows.json              # export do Node-RED — supervisão (ver docs/NODERED.md)
+├── scripts/
+│   └── serve.js                # servidor estático local (npm run serve)
+├── test/
+│   └── public.test.js          # testes da estrutura do dashboard (node --test)
 ├── assets/
 │   └── logos/                  # logo.jpg, baap.jpg
 ├── docs/
@@ -52,14 +76,60 @@ aviario/
 │   ├── APRENDIZADOS.md
 │   ├── PROXIMOS_PASSOS.md
 │   ├── NODERED.md              # supervisão: fluxo Node-RED documentado
+│   ├── DASHBOARD.md            # dashboard AEREM PLS: modos, API esperada, deploy
 │   ├── ADR-README.md           # índice das decisões arquiteturais
 │   ├── ADR-0001-protocolo-lora-texto.md
 │   ├── ADR-0002-attiny85-bare-metal.md
 │   └── ADR-0003-atuador-dupla-via-comando.md
 ├── .gitignore
 ├── LICENSE
+├── package.json                # scripts: serve / check / test / audit
+├── vercel.json                 # deploy estático de public/
 └── README.md
 ```
+
+## Variáveis de Ambiente
+
+**Firmware** — `firmware/*/src/config.h` (não versionado; copie de `config.h.example`):
+
+```c
+#define WIFI_SSID   "SUA_REDE"
+#define WIFI_PASS   "SUA_SENHA"
+#define MQTT_BROKER "192.168.0.3"   // IP do broker Mosquitto
+```
+
+**Dashboard (AEREM PLS)** — sem `.env`: configuração pelo próprio navegador (modal ⚙️ e tela de acesso):
+
+| Chave (localStorage) | Para que serve |
+|---|---|
+| `aerem_broker_ip` / `aerem_broker_port` | endereço do ESP32/broker na rede local (modo Real; padrão `192.168.0.5:80`) |
+| `aerem_auth_user` / `aerem_auth_pass` | credenciais do login local (hash SHA-256 no navegador) |
+
+**Backend** — senhas de exemplo em `backend/setup_servidor.sh` (`INFLUX_PASS`, `GRAFANA_ADMIN_PASS`): troque antes de rodar em produção.
+
+## Segurança
+
+| Camada | Implementação |
+|---|---|
+| Login do dashboard | **Demonstração/local** — validação client-side (SHA-256 em `localStorage`); protege o painel no navegador, não é autenticação de servidor |
+| Firmware | `config.h` (WiFi/broker) **fora do Git** — apenas `config.h.example` versionado |
+| Backend | credenciais placeholder no `setup_servidor.sh`; nada real versionado |
+| Repositório | `.gitignore` cobre `.env*`, `config.h`, `*.pem`, `*.key`, `.vercel/`, `.pio/` |
+| CI | `check` (sintaxe) → `test` (estrutura) → `audit` de dependências a cada push |
+| Histórico | nenhum token/senha real commitado (verificado) |
+
+## Deploy (Vercel)
+
+O dashboard é **estático** (sem build): o `vercel.json` publica a pasta `public/`.
+
+1. **CLI:** `npx vercel login` (uma vez) → `npx vercel --prod` na raiz do repositório.
+2. **GitHub:** importe o repositório em [vercel.com/new](https://vercel.com/new) (Framework: *Other*); cada push na `main` gera deploy automático.
+
+> ⚠️ O modo **Real** depende do ESP32/broker na **rede local** — fora dela (ex.: no Vercel) o dashboard permanece em **Simulação** (mesmo comportamento do projeto Estufa, que devolve 503 no controle remoto).
+
+## URLs de Produção
+
+- **Dashboard:** `https://aerem-pls.vercel.app` _(preencher após o deploy)_
 
 ## Arquitetura / Decisões
 
@@ -74,6 +144,7 @@ aviario/
 - **Mensageria**: MQTT (Mosquitto)
 - **Backend**: Telegraf → InfluxDB 2.x → Grafana (instalação via Bash)
 - **Supervisão**: Node-RED (`flows/flows.json`) — dashboard, alertas Telegram/Gmail e automação; gravação em InfluxDB 1.x (ver [`docs/NODERED.md`](docs/NODERED.md))
+- **Dashboard web**: HTML/CSS/JS vanilla + Chart.js (sem build step) — `public/`, deploy estático no Vercel (ver [`docs/DASHBOARD.md`](docs/DASHBOARD.md))
 
 ## Visão geral da arquitetura
 
@@ -105,11 +176,6 @@ Detalhes completos em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) e [`docs/PROT
 - CR: 4/5
 - Sync word: 0x12 (padrão RadioLib)
 
-## Credenciais e segredos
-
-- Firmware (gateway e atuador): WiFi e broker ficam em `src/config.h`, **não versionado** (bloqueado pelo `.gitignore`) — copie de `src/config.h.example` e edite localmente antes de gravar. Nunca commite credenciais reais.
-- `backend/setup_servidor.sh` tem senhas de exemplo para InfluxDB e Grafana (`INFLUX_PASS`, `GRAFANA_ADMIN_PASS`) — troque antes de rodar em produção. Evite commitar o arquivo já editado com senhas reais.
-
 ## Ambiente de desenvolvimento
 
 - VS Code + PlatformIO.
@@ -118,8 +184,13 @@ Detalhes completos em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) e [`docs/PROT
 
 ## Status atual
 
-Ver [`docs/PROXIMOS_PASSOS.md`](docs/PROXIMOS_PASSOS.md) para o estado mais recente e itens em aberto.
+- Dashboard web **AEREM PLS** em `public/` (modos Simulação/Real, login local, gráfico com limites) — deploy no Vercel.
+- Ver [`docs/PROXIMOS_PASSOS.md`](docs/PROXIMOS_PASSOS.md) para o estado mais recente e itens em aberto.
 
 ## Documento técnico formal
 
 Existe um documento técnico `.docx` cobrindo os três nós, pinagem, protocolo, tópicos MQTT, dificuldades/soluções do ATtiny85 e configuração do PlatformIO — deve ser mantido atualizado conforme o sistema evolui.
+
+## Licença
+
+Projeto acadêmico (TCC). **Todos os direitos reservados** — ver [`LICENSE`](LICENSE).

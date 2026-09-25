@@ -30,6 +30,9 @@ config.h
 backend/setup_servidor.sh.local
 backend/telegraf/telegraf.conf.local
 
+# Vercel (CLI)
+.vercel/
+
 # Node (caso o dashboard/backend use Node.js)
 node_modules/
 npm-debug.log

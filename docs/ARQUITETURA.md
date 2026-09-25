@@ -41,6 +41,12 @@ MQTT (Mosquitto) → Telegraf → InfluxDB 2.x → Grafana
 - `backend/telegraf/telegraf.conf` — dois `inputs.mqtt_consumer`: um para `aviario/no1/sensores`, outro para `aviario/no1/atuadores/estado`; ambos em formato JSON, gravados no InfluxDB 2.x via `outputs.influxdb_v2`.
 - `backend/grafana/aviario_dashboard.json` — dashboard pronto para importar no Grafana (painéis de sensores e atuadores do "Nó 1").
 
+## Dashboard web (AEREM PLS) — `public/`
+
+- Frontend estático (HTML/CSS/JS vanilla + Chart.js) com dois modos: **Simulação** (dados gerados no navegador) e **Real** (consulta HTTP ao ESP32/broker na rede local: `/api/status`, `/api/dados`, `/api/atuador`).
+- Login local por navegador (demonstração), configuração de IP/porta do broker via modal (localStorage).
+- Publicado como site estático (Vercel); fora da rede local permanece em Simulação. Detalhes e contrato da API: [`DASHBOARD.md`](DASHBOARD.md).
+
 ## Configuração LoRa (deve ser idêntica nos 3 nós)
 
 - Frequência: 915 MHz
