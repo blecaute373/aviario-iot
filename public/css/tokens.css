@@ -86,4 +86,74 @@
   --grid: rgba(226, 240, 255, 0.05);
   --tick: #7286a6;
   --tooltip-bg: rgba(6, 12, 20, 0.96);
+
+  /* — Tinta da marca para texto sobre fundo claro (AA) — */
+  --brand-ink: #fdba74;
+
+  /* — Tela de acesso split-screen (coluna de marca + cartão) — */
+  --lg-canvas: transparent;
+  --lg-panel-1: #0b1526;
+  --lg-panel-2: #10203a;
+  --lg-panel-3: #0a1120;
+  --lg-glow-brand: rgba(251, 146, 60, 0.22);
+  --lg-glow-info: rgba(56, 189, 248, 0.18);
+  --lg-eyebrow: #7dd3fc;
+  --lg-chip-bg: rgba(255, 255, 255, 0.04);
+  --lg-chip-border: rgba(122, 168, 255, 0.16);
+  --lg-tab-bg: rgba(255, 255, 255, 0.05);
+  --lg-tab-indicador: rgba(255, 255, 255, 0.14);
+  --lg-decor: rgba(122, 168, 255, 0.14);
+  /* Texto do painel de marca: fixo nos dois temas (o painel é sempre escuro) */
+  --lg-panel-ink: #eef4ff;
+  --lg-panel-ink-2: #a9c1e8;
+}
+
+/* ── Tema claro ESCOPADO à tela de acesso ──────────────────────────
+   Só vale dentro do subtree de #loginScreen: a consola e o painel
+   permanecem sempre escuros nesta fase. O segundo seletor cobre o
+   anti-FOUC do <head> (atributo no <html> antes do corpo existir);
+   o theme.js espelha o mesmo valor em #loginScreen ao carregar. */
+#loginScreen[data-tema="claro"],
+html[data-tema-acesso="claro"] #loginScreen {
+  color-scheme: light;
+
+  --bg: #eef2f8;
+  --bg2: #e6ecf5;
+  --bg3: #dbe4f0;
+  --surface: rgba(255, 255, 255, 0.9);
+  --surface-2: rgba(255, 255, 255, 0.96);
+  --surface-solid: #ffffff;
+  --inset: rgba(13, 22, 38, 0.05);
+
+  --border: rgba(13, 22, 38, 0.12);
+  --border-2: rgba(13, 22, 38, 0.18);
+  --border-strong: rgba(194, 65, 12, 0.45);
+  --hairline: rgba(13, 22, 38, 0.06);
+
+  --brand-ink: #c2410c;
+
+  --ok: #047857;
+  --warn: #b45309;
+  --crit: #b91c1c;
+  --info: #0369a1;
+  --state-on: #047857;
+
+  --text: #0d1626;
+  --text-2: #33415c;
+  --muted: #5b6b87;
+  --muted-2: #93a3bd;
+
+  --shadow-sm: 0 1px 2px rgba(13, 22, 38, 0.12);
+  --shadow-md: 0 8px 28px rgba(13, 22, 38, 0.14);
+  --shadow-lg: 0 18px 60px rgba(13, 22, 38, 0.18);
+  --glow: 0 0 26px rgba(249, 115, 22, 0.22);
+  --glow-soft: 0 0 0 3px rgba(249, 115, 22, 0.12);
+
+  --grid: rgba(13, 22, 38, 0.07);
+  --tick: #5b6b87;
+  --tooltip-bg: rgba(255, 255, 255, 0.98);
+
+  --lg-canvas: #f1f5f9;
+  --lg-tab-bg: rgba(13, 22, 38, 0.08);
+  --lg-tab-indicador: #ffffff;
 }

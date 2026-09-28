@@ -6,7 +6,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "serve": "node scripts/serve.js",
-    "check": "node --check public/js/config.js && node --check public/js/auth.js && node --check public/js/zoom.js && node --check public/js/mock.js && node --check public/js/api.js && node --check public/js/ui.js && node --check public/js/acessos.js && node --check public/js/dashboard.js && node --check public/js/admin.js && node --check lib/auth.js && node --check lib/auth-api.js && node --check lib/store-json.js && node --check lib/store-mongo.js && node --check api/index.js && node --check scripts/serve.js && node --check test/public.test.js && node --check test/auth.test.js",
+    "check": "node --check public/js/theme.js && node --check public/js/config.js && node --check public/js/auth.js && node --check public/js/zoom.js && node --check public/js/mock.js && node --check public/js/api.js && node --check public/js/ui.js && node --check public/js/acessos.js && node --check public/js/dashboard.js && node --check public/js/admin.js && node --check lib/auth.js && node --check lib/auth-api.js && node --check lib/store-json.js && node --check lib/store-mongo.js && node --check api/index.js && node --check scripts/serve.js && node --check test/public.test.js && node --check test/auth.test.js && node --check test/v1-failsafe.test.js",
     "test": "node --test",
     "audit": "npm audit --audit-level=high"
   },

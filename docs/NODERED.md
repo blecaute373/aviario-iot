@@ -8,6 +8,8 @@
 - 🔎 → **interpretação** (leitura razoável, não explícita no arquivo);
 - ⚠️ → **contexto externo** (informação de outras partes do projeto — confirmar antes de apresentar).
 
+> ⚠️ **Contrato de comando vigente (ADR-0004):** o fluxo publica em `aviario/no1/atuadores/comando` com payload **texto pipe-delimited** (`CMD|MODO:MANUAL|V2:x|ASP:x|NEB:x`). **V1 (ventilador 1) não é comandado pelo Node-RED** — é propriedade exclusiva do firmware (proteção de NH₃, sempre armada). O estado recebido usa as chaves novas (`aspersor`/`nebulizador`, `v1_protecao`, `sensor_online`) com fallback para os aliases legados (`asp`/`neb`).
+
 **Composição do export:** 45 entradas — 1 aba, 6 grupos, **30 nós de fluxo** e 8 nós de configuração/UI (broker MQTT, InfluxDB, bot do Telegram, 3 grupos + aba do dashboard e `global-config`). Plugins declarados no próprio export: `node-red-contrib-influxdb 0.7.0`, `node-red-dashboard 3.6.6`, `node-red-contrib-telegrambot 17.4.13`, `node-red-node-email 5.2.4`.
 
 | Grupo | Nome no arquivo |
@@ -49,8 +51,8 @@ O fluxo começa no **`mqtt in`**: tudo a montante (nós de sensor, gateway ESP32
          │                                                      └─► 4× ui_text (🟢/⚪ por atuador)
          │
          │  MQTT     ┌──────────────────────────────────────────┐
-         │ ◄──────── │ mqtt out aviario/no1/atuadores/cmd (QoS1)│ ◄── 3 origens:
-         │           └──────────────────────────────────────────┘     1) "Monta Comando JSON" (dashboard)
+         │ ◄──────── │ mqtt out aviario/no1/atuadores/comando (QoS1)│ ◄── 3 origens:
+         │           └──────────────────────────────────────────┘     1) "Monta Comando CMD" (dashboard)
          │                                                            2) "Verifica Limites…" (modo automático)
          │                                                            3) "Processa Comandos Telegram"
          │
@@ -64,7 +66,7 @@ O fluxo começa no **`mqtt in`**: tudo a montante (nós de sensor, gateway ESP32
 
 | Tecnologia | Papel no fluxo | Evidência no arquivo |
 |---|---|---|
-| **MQTT / Mosquitto** | Transporte pub/sub. 2 assinaturas (`sensores` e `atuadores/estado`, QoS 0) e 1 publicação (`atuadores/cmd`, QoS 1, retain `false`). Broker `localhost:1883`, MQTT 3.1.1 (`protocolVersion: 4`), sem TLS e sem credenciais no export; nome do nó: *"Broker Local (Mosquitto)"* | `mqtt in` ×2, `mqtt out` ×1, config `cfg_mqtt` |
+| **MQTT / Mosquitto** | Transporte pub/sub. 2 assinaturas (`sensores` e `atuadores/estado`, QoS 0) e 1 publicação (`atuadores/comando`, QoS 1, retain `false`). Broker `localhost:1883`, MQTT 3.1.1 (`protocolVersion: 4`), sem TLS e sem credenciais no export; nome do nó: *"Broker Local (Mosquitto)"* | `mqtt in` ×2, `mqtt out` ×1, config `cfg_mqtt` |
 | **Node-RED** | Orquestrador central: recebe, processa (funções JS), grava, exibe, alerta, decide automação e publica comandos | toda a aba |
 | **InfluxDB 1.x** | Série temporal; database `aviario` em `http://localhost:8086`; measurements `sensores` e `atuadores` | config `cfg_influx` (`influxdbVersion: "1.x"`) |
 | **Dashboard (node-red-dashboard)** | UI web na aba "Aviário": medidores, indicadores de estado e interruptores | nós `ui_gauge`, `ui_text`, `ui_switch`, `ui_tab`, `ui_group` |
@@ -109,7 +111,7 @@ O `mqtt in` usa `datatype: json`, então `msg.payload` chega como objeto JSON. A
 **Como o estado chega:** o `mqtt in` **`aviario/no1/atuadores/estado`** (JSON, QoS 0) abastece a função **"Processa Estado Atuadores"**, que:
 
 1. atualiza `global.estadoAtuadores` com `{v1, v2, asp, neb}`;
-2. monta `payload: {v1, v2, asp, neb}` + `measurement: 'atuadores'` → **InfluxDB**;
+2. monta `payload: {v1, v2, asp, neb, v1_protecao, sensor_online}` + `measurement: 'atuadores'` → **InfluxDB**;
 3. emite 4 booleanos (`d.v1 === 1`…) → 4 nós **`ui_text`** no dashboard (`🟢 Ligado` / `⚪ Desligado`).
 
 Assim, o dashboard mostra o **estado real reportado pelo dispositivo** (quem publica nesse tópico é o firmware), e o InfluxDB registra o mesmo estado como série temporal (1/0 por campo). Comentário presente no código: o payload para o plugin `influxdb` 1.x precisa ser **objeto simples** (`{campo: valor}`) com o measurement em `msg.measurement` — array ali causa o erro *"val.slice is not a function"*.
@@ -135,7 +137,7 @@ const LIM_NH3_MAX  = 25; // ppm
 | `nh3_ppm > 25 ppm` **ou** `temperatura > 32 °C` | `neb = 1`; senão `0` |
 | `umidade < 40 %` | `asp = 1`; senão `0` |
 
-**Atualização do estado:** se o resultado diferir de `global.estadoAtuadores` (comparação por `JSON.stringify`), a função grava a nova global e emite `{ payload: novo }` na 3ª saída → o `mqtt out` **`aviario/no1/atuadores/cmd`**. Sem mudança → nada é publicado. O ciclo fecha quando o dispositivo publica o novo estado no tópico `.../estado` (seção 3).
+**Atualização do estado:** se o resultado diferir de `global.estadoAtuadores` (comparação por `JSON.stringify`), a função grava a nova global e emite `{ topic: '.../comando', payload: 'CMD|MODO:MANUAL|V2:x|ASP:x|NEB:x' }` na 3ª saída → o `mqtt out` **`aviario/no1/atuadores/comando`**. Sem mudança → nada é publicado. O ciclo fecha quando o dispositivo publica o novo estado no tópico `.../estado` (seção 3).
 
 ### Alertas (independentes do modo automático)
 
@@ -166,9 +168,9 @@ Quatro switches `ui_switch`, um por atuador:
 | Aspersor | `asp` | `true`/`false` |
 | Nebulizador | `neb` | `true`/`false` |
 
-Todos convergem na função **"Monta Comando JSON"**, que: (1) recupera `global.estadoAtuadores`; (2) aplica a mudança pelo `msg.topic` (`estado[msg.topic] = msg.payload ? 1 : 0`); (3) regrava a global; (4) emite `msg.payload = { v1, v2, asp, neb }` — **sempre os quatro campos**, não apenas o alterado.
+Todos convergem na função **"Monta Comando CMD"**, que: (1) recupera `global.estadoAtuadores`; (2) aplica a mudança pelo `msg.topic` (`estado[msg.topic] = msg.payload ? 1 : 0`); (3) regrava a global; (4) emite `msg.payload = { v1, v2, asp, neb }` — **sempre os quatro campos**, não apenas o alterado.
 
-O comando sai pelo `mqtt out` **`aviario/no1/atuadores/cmd`** — **QoS 1**, **retain `false`**, `contentType: application/json`. Esse é o **ponto único de saída** de todos os comandos (manual, automático e Telegram).
+O comando sai pelo `mqtt out` **`aviario/no1/atuadores/comando`** — **QoS 1**, **retain `false`**, `contentType: application/json`. Esse é o **ponto único de saída** de todos os comandos (manual, automático e Telegram).
 
 🔎 Nada alimenta a entrada dos switches — o interruptor mostra a posição deixada pelo usuário e **não se reposiciona sozinho** quando o comando vem do Telegram ou do modo automático. Já os `ui_text` de estado (grupo 2) mostram o estado real.
 
@@ -188,7 +190,7 @@ O comando sai pelo `mqtt out` **`aviario/no1/atuadores/cmd`** — **QoS 1**, **r
 | `/help` · `/start` | Texto de ajuda (`🐔 Bot Aviário` + lista de comandos) |
 | *(qualquer outro texto)* | `Comando não reconhecido. Envie /help para ver os comandos disponíveis.` |
 
-**Mecânica:** todo comando válido de atuador atualiza `global.estadoAtuadores` e emite na 2ª saída `{ payload: {v1,v2,asp,neb} }` → o **mesmo** `mqtt out` `aviario/no1/atuadores/cmd`. A 1ª saída sempre responde ao `chatId` de origem. Como o texto é convertido para minúsculas, `/V1_ON` também funciona.
+**Mecânica:** todo comando válido de atuador atualiza `global.estadoAtuadores` e emite na 2ª saída `{ topic: '.../comando', payload: 'CMD|MODO:MANUAL|V2:x|ASP:x|NEB:x' }` → o **mesmo** `mqtt out` `aviario/no1/atuadores/comando`. A 1ª saída sempre responde ao `chatId` de origem. Como o texto é convertido para minúsculas, `/V1_ON` também funciona.
 
 🔎 O fluxo **não verifica o chat de origem** — o `chatId` recebido é usado apenas para responder; não há lista de autorizados no arquivo (os campos de controle do bot estão vazios neste export).
 
@@ -255,17 +257,17 @@ Temp: X °C | Umid: Y % | NH3: Z ppm | Pressão: W hPa
 
 **Decisão automática (fecha o ciclo):**
 
-8. `Verifica Limites…` → **`mqtt out` `aviario/no1/atuadores/cmd`** (QoS 1) → (fora do arquivo: gateway/atuador aplica nos relés) → novo estado volta pelo tópico `estado` (passo 7), atualizando dashboard e banco.
+8. `Verifica Limites…` → **`mqtt out` `aviario/no1/atuadores/comando`** (QoS 1) → (fora do arquivo: gateway/atuador aplica nos relés) → novo estado volta pelo tópico `estado` (passo 7), atualizando dashboard e banco.
 
 **Controle manual:**
 
-9. **Switch** do dashboard → `msg.topic` identifica o atuador → **"Monta Comando JSON"** → **mesmo `mqtt out` `cmd`**.
+9. **Switch** do dashboard → `msg.topic` identifica o atuador → **"Monta Comando CMD"** → **mesmo `mqtt out` `cmd`**.
 
 **Controle via Telegram:**
 
 10. Comando ao bot "Max" → **receiver** → **"Processa Comandos Telegram"** → resposta (sender) e, se for comando de atuador, publicação no **mesmo `mqtt out` `cmd`**; `/status` responde do cache global, sem tocar no MQTT.
 
-**⇢ Os três caminhos de comando (manual, automático e Telegram) convergem no MESMO nó de publicação e no MESMO tópico `aviario/no1/atuadores/cmd`** — característica central da arquitetura.
+**⇢ Os três caminhos de comando (manual, automático e Telegram) convergem no MESMO nó de publicação e no MESMO tópico `aviario/no1/atuadores/comando`** — característica central da arquitetura.
 
 ## Diferenciação final: implementado × interpretação × dependências externas
 

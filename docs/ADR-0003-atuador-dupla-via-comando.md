@@ -1,6 +1,6 @@
 # ADR-0003 — Atuador com dupla via de comando: MQTT + fallback LoRa
 
-**Status:** Aceito (registro retroativo)
+**Status:** Superado pelo [ADR-0004](ADR-0004-no-unico-gateway-atuador.md) — o nó atuador separado e o fallback LoRa de comando não são mais usados (registro retroativo mantido para histórico)
 
 ## Contexto
 

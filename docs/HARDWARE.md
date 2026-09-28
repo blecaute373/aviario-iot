@@ -3,15 +3,16 @@
 ## Lista de componentes (confirmados no código atual)
 
 - ATtiny85 (DIP-8) — nó sensor
-- RFM95W / SX1276 (rádio LoRa) — nos 3 nós
+- RFM95W / SX1276 (rádio LoRa) — no nó sensor e no nó único (o gateway antigo e o nó atuador separado não estão em operação)
 - BME280 (temperatura/umidade/pressão, I²C) — nó sensor
 - MICS6814 (sensor de gases — NH₃, via ADC) — nó sensor
-- ESP32 — gateway
-- ESP32 — nó atuador
-- 4 relés (módulo ativo-baixo) — nó atuador, controlados por GPIO direto (não via PCF8574 — ver nota abaixo)
+- ESP32 — **nó único** gateway + atuador (em operação — ver nota abaixo)
+- 4 relés (módulo ativo-baixo) — acionados pelo **PCF8574** no nó único; **apenas V1 (ventilador 1) está instalado**, V2/aspersor/nebulizador são reserva de expansão
+- LCD 16×2 I²C (0x27) — painel local do nó único
+- ESP32 — nó atuador separado (`firmware/no-atuador-esp32/`): **não está em operação** (superado pelo ADR-0004)
 - Programador USBasp — gravação do ATtiny85
 
-> ⚠️ **LCD I²C (0x27) e módulo de relés PCF8574**, mencionados em documentação anterior, **não aparecem no código-fonte atual** (gateway nem atuador usam essas bibliotecas/endereços). Pode ser hardware planejado mas não implementado no firmware atual, ou informação desatualizada — confirme antes de montar o circuito achando que eles são necessários.
+> ℹ️ **Atualização (ADR-0004):** enquanto `firmware/gateway-esp32/` e `firmware/no-atuador-esp32/` não usam LCD nem expansor I²C, o nó vigente — `firmware/gateway-atuador-esp32/` — **usa os dois**: LCD 16×2 I²C em `0x27` e módulo de relés via **PCF8574 em `0x20`**. Pinagem desse nó abaixo. Ver [`ADR-0004`](ADR-0004-no-unico-gateway-atuador.md).
 
 ## Pinagem confirmada — Gateway ESP32 (`firmware/gateway-esp32/src/main.cpp`)
 
@@ -34,6 +35,17 @@ LoRa: mesma pinagem do gateway (NSS 5, RST 14, DIO0 26).
 | Ventilador 2 | 33 | ativo-baixo |
 | Aspersor | 32 | ativo-baixo |
 | Nebulizador | 27 | ativo-baixo |
+
+## Pinagem confirmada — Nó único Gateway + Atuador ESP32 (`firmware/gateway-atuador-esp32/`)
+
+| Sinal | Pino | Observação |
+|-------|------|------------|
+| LoRa NSS / RST / DIO0 | 5 / 14 / **35** | DIO0 em 35 (a trilha original para o GPIO 26 faltou na PCB — corrigido com jumper) |
+| LoRa SCK / MISO / MOSI | 18 / 19 / 23 | SPI explícito: `SPI.begin(18, 19, 23, LORA_NSS)` |
+| I²C SDA / SCL | 21 / 22 | LCD (0x27) e PCF8574 (0x20) no mesmo barramento |
+| Relés (V1/V2/ASP/NEB) | P0…P3 do **PCF8574** | ativo-baixo (bit em 0 = relé ligado); 1 transação I²C por atualização |
+
+> **Apenas V1 (ventilador 1) está instalado hoje.** V2, aspersor e nebulizador são reserva de expansão: o firmware mantém estado e protocolo para eles, sem efeito físico enquanto o relé não existir ([ADR-0004](ADR-0004-no-unico-gateway-atuador.md)).
 
 ## Pinagem confirmada — ATtiny85 (conforme `firmware/no-sensor-attiny85/src/main.cpp`)
 

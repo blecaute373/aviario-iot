@@ -10,12 +10,21 @@
 
 ## Itens a verificar/confirmar
 
-1. Gravar o firmware atualizado nos 3 nós físicos (sensor, gateway, atuador) e confirmar recepção ponta a ponta pelo gateway.
-2. Confirmar o pipeline completo: LoRa → MQTT → Telegraf / Node-RED → InfluxDB 1.x → Grafana, usando o dashboard já pronto (`backend/grafana/aviario_dashboard.json`).
+1. Gravar o firmware atualizado nos nós físicos:
+   - Nó sensor ATtiny85: `firmware/no-sensor-attiny85/`
+   - Nó único Gateway + Atuador ESP32: `firmware/gateway-atuador-esp32/` (ver [ADR-0004](ADR-0004-no-unico-gateway-atuador.md))
+   - Confirmar recepção ponta a ponta pelo ESP32 e acionamento do relé V1.
+2. Confirmar o pipeline completo: LoRa → MQTT (`aviario/no1/sensores` e `aviario/no1/atuadores/estado`) → Telegraf / Node-RED → InfluxDB 1.x → Grafana, usando o dashboard já pronto (`backend/grafana/aviario_dashboard.json`).
 3. Trocar as credenciais placeholder pelas reais — no firmware, em `firmware/*/src/config.h` (copiado de `config.h.example`, fora do Git); no backend, `INFLUX_PASS`/`GRAFANA_ADMIN_PASS` no `setup_servidor.sh` — sem commitar os valores reais.
-4. Confirmar se o `SENSOR_TIMEOUT_MS` (ou equivalente) ainda é necessário/está presente na versão atual do gateway — não localizado no código revisado desta vez.
+4. `SENSOR_TIMEOUT_MS`: Definido e implementado no nó único (`firmware/gateway-atuador-esp32/src/main.cpp`) como 480 s (1,5× o ciclo do ATtiny85 de ~320 s). Quando expira, o failsafe de NH₃ mantém V1 ligado preventivamente.
 5. Pipeline unificado em **InfluxDB 1.x (InfluxQL)**: tanto o Telegraf quanto o Node-RED gravam no InfluxDB 1.x (banco `aviario`), consumidos harmoniosamente pelo Grafana e pelo Node-RED.
 6. Dashboard AEREM PLS (`public/`): evoluir o login local (hoje demo) para autenticação real, transformar em PWA instalável e integrar aos dados reais do ESP32 (o modo Simulação é o padrão fora da rede local).
+
+## Registrado em 28/09/2026 (tela de acesso e tema)
+
+1. **Tema claro da consola/painel (pendente, escopo consciente):** o tema claro vale hoje **só na tela de acesso** (`#loginScreen[data-tema="claro"]` em `tokens.css` + `public/js/theme.js`); a consola (`index.html`) e o painel (`admin.html`) permanecem sempre escuros. Motivo: `base.css`, `dashboard.css` e `control.css` ainda têm ~78 cores literais (`rgba(...)`) fora dos tokens — migrar essas cores para `tokens.css` é o pré-requisito para estender o tema sem retrabalho. Quando fizer, ampliar o bloco claro e o escopo do `theme.js`.
+2. **Definir `ADMIN_USER`/`ADMIN_PASS` no Vercel antes do uso real:** a tela de acesso **não exibe mais** a credencial padrão (`admin`/`admin`) e o aviso de `?login=admin` foi reescrito sem citá-la. Sem essas variáveis de ambiente, a conta administrativa fica no padrão de desenvolvimento (`admin`/`admin` em `lib/auth.js`) — trocar antes de expor o sistema. Vale o mesmo para `SESSAO_HORAS`, `MONGODB_URI` e `MONGODB_DB`.
+3. **PWA instalável (fora de escopo por decisão):** a tela de acesso **não** tem bloco de QR Code nem download de aplicativo (o aviário não tem app). Se o PWA for desejado depois, tratar como item próprio (manifest + service worker + ícone), sem depender da tela de acesso.
 
 ## Registrado antes do envio do código-fonte (reverificar — pode estar desatualizado)
 

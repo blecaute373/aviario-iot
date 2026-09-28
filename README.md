@@ -11,7 +11,9 @@ Sistema IoT completo de monitoramento ambiental e controle para um aviário (gal
 npm run serve
 # 2. Abra http://localhost:3000            (consola de supervisão)
 #    e http://localhost:3000/admin.html    (painel de controle dos atuadores)
-# 3. Primeiro acesso: clique em "Configurar usuário e senha" (login local, por navegador)
+# 3. Primeiro acesso: aba "Entrar" com a conta administrativa (ADMIN_USER/ADMIN_PASS;
+#    padrão de desenvolvimento admin/admin) ou aba "Registrar" para criar um usuário comum
+#    (o tema claro/escuro da tela de acesso fica no botão no canto do cartão)
 # 4. O modo "Simulação" já vem ativo; para dados reais use o ⚙️ e informe IP/porta do ESP32/broker
 ```
 

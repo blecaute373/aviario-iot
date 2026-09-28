@@ -4,7 +4,7 @@ Frontend estático do aviário, em **duas páginas** com qualidade visual de con
 
 - **`index.html` — Consola de Supervisão (somente leitura):** monitoramento ambiental em tempo real (Temperatura, Umidade, Pressão atmosférica e Amônia NH₃) com anéis/limiares, estado dos 4 atuadores, gráfico histórico multi-série via InfluxDB 1.x, alertas operacionais e qualidade do enlace LoRa (RSSI/SNR).
 - **`admin.html` — Painel de Controle (administrativo):** monitorização ao vivo em faixa compacta, **controle manual dos 4 atuadores** (Ventilador 1, Ventilador 2, Aspersor e Nebulizador), **chave mestra do Modo Automático** (automação Node-RED), log de comandos da sessão e **Usuários & Acessos** (auditoria de login).
-- **Acesso único:** as duas páginas compartilham a mesma tela de login/cadastro (`#loginScreen`): o administrador pré-configurado (`admin`/`admin`) segue para o painel, o usuário cadastrado entra na consola — ver a seção *Acesso* abaixo.
+- **Acesso único:** as duas páginas compartilham a mesma tela de login/cadastro (`#loginScreen`): a conta de **administrador** (definida por `ADMIN_USER`/`ADMIN_PASS` no servidor — **nenhuma credencial é exibida na interface**) segue para o painel, o usuário cadastrado entra na consola — ver a seção *Acesso* abaixo.
 
 ## Estrutura
 
@@ -19,6 +19,7 @@ public/
 │   ├── dashboard.css   # cards de sensores/atuadores, gráfico, alertas, sistema
 │   └── control.css     # controles do admin (botões, chave mestra, faixa ao vivo)
 ├── js/
+│   ├── theme.js        # tema claro/escuro da tela de acesso (localStorage['aerem_tema'])
 │   ├── config.js       # IP/porta do gateway, modo Simulação/Real, modal
 │   ├── auth.js         # acesso: login/cadastro/sessão via /api/auth/*
 │   ├── zoom.js         # pinch/pan em telas de toque (consola)
@@ -41,6 +42,7 @@ public/
 | Chave (localStorage) | Padrão | Uso |
 |---|---|---|
 | `aerem_modo` | `sim` | modo de operação (`sim`/`real`) |
+| `aerem_tema` | — | tema da tela de acesso (`claro`/`escuro`); **sem** valor salvo, segue o `prefers-color-scheme` do sistema |
 | `aerem_broker_ip` | `192.168.0.5` | IP/host do gateway ou servidor backend |
 | `aerem_broker_port` | `80` | porta do servidor HTTP |
 | `aerem_usuarios_local` / `aerem_acessos_local` | — | **apenas na demonstração local**: cadastros e acessos registrados no navegador quando não há servidor de acesso |
@@ -60,10 +62,21 @@ Cadência: status a cada 5 s (topbar com barra de contagem); histórico a cada 1
 
 Um único endereço atende os dois perfis — quem entra como **administrador** vai para o painel, quem entra com **cadastro** vai para a consola:
 
+A tela (`#loginScreen`) é um **split-screen**: à esquerda um **painel de marca** (eyebrow mono *AVIÁRIO 01 · IOT AVÍCOLA*, título *Monitorização em tempo real*, resumo do sistema, silhueta decorativa em SVG e 3 chips — *4 SENSORES* / *~5 min CICLO* / *24/7 ONLINE*); à direita a **coluna do cartão**, com o cartão de acesso (logo AEREM, *AEREM PLS* + subtítulo mono *MONITOR AVÍCOLA · ACESSO*, abas segmentadas *Entrar* / *Registrar* com indicador animado, campos com ícone e botão de revelar senha, botão primário em gradiente e selo do modo de armazenamento com LED pulsante). O painel de marca é sempre escuro (nos dois temas); abaixo de 900 px ele vira uma faixa compacta no topo e só o cartão permanece, centralizado com rolagem própria.
+
+**Sem bloco de QR Code / download de app:** o aviário não tem aplicativo — a tela de acesso não oferece PWA (registrado em [`PROXIMOS_PASSOS.md`](PROXIMOS_PASSOS.md)).
+
+### Tema claro/escuro (escopo: tela de acesso)
+
+- Botão no canto superior direito do cartão (`#themeToggle`, `aria-pressed`, ícone lua ⇄ sol), com a preferência em `localStorage['aerem_tema']` (`claro`/`escuro`); sem preferência salva, segue o `prefers-color-scheme` do sistema.
+- Script inline no `<head>` das duas páginas aplica o tema antes da primeira pintura (sem flash) e `public/js/theme.js` mantém o estado (`data-tema` no `#loginScreen`, espelhado em `<html data-tema-acesso>` e no `<meta name="theme-color">`).
+- Os valores do tema claro ficam no bloco `#loginScreen[data-tema="claro"]` de `tokens.css` — **a consola e o painel continuam sempre escuros nesta fase** (pendência registrada em [`PROXIMOS_PASSOS.md`](PROXIMOS_PASSOS.md)).
+- **Nenhuma credencial é exibida na tela** (a dica `admin`/`admin` foi removida): a credencial administrativa vem de `ADMIN_USER`/`ADMIN_PASS` no servidor e nunca aparece no HTML.
+
 | Perfil | Como entrar | O que vê |
 |---|---|---|
-| Administrador | credencial pré-configurada `admin` / `admin` (alterável com `ADMIN_USER`/`ADMIN_PASS`) | painel de controle: atuadores, modo automático e **Usuários & Acessos** (KPIs, cadastros e log com IP/navegador/horário) |
-| Usuário | **Criar conta** (nome, e-mail, função, usuário e senha de 6+ caracteres) e depois entrar com usuário/senha | consola de supervisão (somente leitura) |
+| Administrador | credencial pré-configurada no servidor (`ADMIN_USER`/`ADMIN_PASS`; padrão de desenvolvimento `admin`/`admin`) — **não exibida na interface** | painel de controle: atuadores, modo automático e **Usuários & Acessos** (KPIs, cadastros e log com IP/navegador/horário) |
+| Usuário | aba **Registrar** (nome, e-mail, função, usuário e senha de 6+ caracteres) e depois entrar com usuário/senha | consola de supervisão (somente leitura) |
 
 Estados possíveis da tela de acesso, detectados por `GET /api/auth/status` (`public/js/auth.js`):
 
@@ -134,7 +147,7 @@ npx vercel --prod  # na raiz do repositório
 
 ```bash
 npm run check   # node --check em todos os scripts (dashboard, lib/, api/, servidor e testes)
-npm test        # 22 testes: estrutura do dashboard + integração do acesso
+npm test        # 34 testes: estrutura do dashboard, acesso (layout split-screen/tema) e failsafe de V1
 npm run serve   # servidor local + API de acesso (/api/auth/*, /api/admin/*) + proxy InfluxDB 1.x em /api/dados
 ```
 

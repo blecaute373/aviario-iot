@@ -6,6 +6,8 @@
 <meta name="theme-color" content="#070b13">
 <meta name="description" content="AVIÁRIO IoT — consola de supervisão ambiental do aviário: temperatura, umidade, pressão, amônia, atuadores e enlace LoRa.">
 <title>AVIÁRIO IoT · Consola de Supervisão</title>
+<!-- Anti-FOUC do tema da tela de acesso: aplica a preferência antes de pintar -->
+<script>(function(){try{var t=localStorage.getItem('aerem_tema');if(t!=='claro'&&t!=='escuro')t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'claro':'escuro';if(t==='claro')document.documentElement.setAttribute('data-tema-acesso','claro');}catch(e){}})();</script>
 <script>(function(){try{if(sessionStorage.getItem('aerem_logged_in')==='1'){document.documentElement.classList.add('aerem-logged')}}catch(e){}})();</script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,53 +23,122 @@
 <body data-pagina="consola">
 
 <!-- ═══ TELA DE ACESSO (login e cadastro no mesmo URL) ═══
-     Administrador pré-configurado (admin/admin) → painel de controle;
-     usuários cadastrados (nome, e-mail, função e senha) → consola. -->
+     Split-screen: painel de marca à esquerda, cartão de acesso à direita.
+     Administrador → painel de controle; usuários cadastrados → consola. -->
 <div id="loginScreen">
-    <div class="login-box" id="loginBox">
-        <img src="assets/logo-aerem.png" alt="AEREM" class="aerem-logo">
-        <h1 id="loginTitle">AVIÁRIO IoT</h1>
-        <p class="hint" id="loginHint">Entre com suas credenciais para continuar</p>
+    <div class="lg-split">
 
-        <div class="somente-login">
-            <label for="loginUser">Usuário</label>
-            <input type="text" id="loginUser" autocomplete="username" placeholder="usuário">
-            <label for="loginPass">Senha</label>
-            <input type="password" id="loginPass" autocomplete="current-password" placeholder="senha">
+        <!-- Painel de marca (decorativo): vira cabeçalho compacto em telas estreitas -->
+        <aside class="lg-painel" aria-hidden="true">
+            <div class="lg-painel-conteudo">
+                <p class="lg-eyebrow">AVIÁRIO 01 · IOT AVÍCOLA</p>
+                <h2 class="lg-titulo">Monitorização<br>em tempo real</h2>
+                <p class="lg-desc">Temperatura, umidade, pressão e amônia (NH₃) do galpão, via LoRa, com proteção automática de ventilação.</p>
+            </div>
+            <svg class="lg-decor" viewBox="0 0 380 240" aria-hidden="true" focusable="false">
+                <g fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round">
+                    <path d="M44 210V116l104-56 104 56v94"/>
+                    <path d="M148 60V30M120 74 84 94M176 74l36 20"/>
+                    <path d="M112 210v-58h72v58M112 176h72"/>
+                    <circle cx="308" cy="86" r="30"/>
+                    <path d="M308 36v-12M308 148v-12M358 86h12M246 86h12M330 108l9 9M277 55l9 9M330 64l9-9M277 117l9-9"/>
+                </g>
+            </svg>
+            <div class="lg-chips">
+                <span class="lg-chip"><b>4</b> SENSORES</span>
+                <span class="lg-chip"><b>~5 min</b> CICLO</span>
+                <span class="lg-chip"><b>24/7</b> ONLINE</span>
+            </div>
+        </aside>
+
+        <!-- Cartão de acesso: mantém os ids consumidos por js/auth.js -->
+        <div class="lg-area-cartao">
+            <div class="login-box" id="loginBox">
+                <button type="button" id="themeToggle" class="lg-tema" aria-pressed="false"
+                        aria-label="Alternar tema claro ou escuro" title="Tema claro / escuro">
+                    <i class="fa-solid fa-moon lg-tema-lua" aria-hidden="true"></i>
+                    <i class="fa-solid fa-sun lg-tema-sol" aria-hidden="true"></i>
+                </button>
+
+                <header class="lg-cabeca">
+                    <div class="lg-logo"><img src="assets/logo-aerem.png" alt="AEREM" class="aerem-logo"></div>
+                    <h1 id="loginTitle">AEREM PLS</h1>
+                    <p class="lg-subtitulo-mono" id="loginHint">MONITOR AVÍCOLA · ACESSO</p>
+                </header>
+
+                <!-- Entrar ⇄ Registrar: indicador animado por CSS (classe modo-cadastro) -->
+                <div class="lg-tabs" role="group" aria-label="Entrar ou registrar acesso">
+                    <span class="lg-tab-indicador" aria-hidden="true"></span>
+                    <button type="button" class="lg-tab" id="loginTabEntrar" aria-pressed="true"
+                            onclick="alternarModoAcesso('login')">Entrar</button>
+                    <button type="button" class="lg-tab" id="loginToggle" aria-pressed="false"
+                            onclick="alternarModoAcesso('cadastro')">Registrar</button>
+                </div>
+
+                <div class="somente-login">
+                    <div class="campo">
+                        <label for="loginUser">Usuário</label>
+                        <i class="fa-regular fa-user campo-ico" aria-hidden="true"></i>
+                        <input type="text" id="loginUser" autocomplete="username" placeholder="usuário">
+                    </div>
+                    <div class="campo">
+                        <label for="loginPass">Senha</label>
+                        <i class="fa-solid fa-lock campo-ico" aria-hidden="true"></i>
+                        <input type="password" id="loginPass" autocomplete="current-password" placeholder="senha">
+                        <button type="button" class="campo-revelar" data-alvo="loginPass" aria-label="Mostrar senha"><i class="fa-regular fa-eye"></i></button>
+                    </div>
+                </div>
+
+                <div class="somente-cadastro">
+                    <div class="campo">
+                        <label for="cadNome">Nome completo</label>
+                        <i class="fa-solid fa-id-card campo-ico" aria-hidden="true"></i>
+                        <input type="text" id="cadNome" autocomplete="name" placeholder="ex.: Maria Souza">
+                    </div>
+                    <div class="campo">
+                        <label for="cadEmail">E-mail</label>
+                        <i class="fa-regular fa-envelope campo-ico" aria-hidden="true"></i>
+                        <input type="email" id="cadEmail" autocomplete="email" placeholder="nome@exemplo.com">
+                    </div>
+                    <div class="campo">
+                        <label for="cadFuncao">Função no aviário</label>
+                        <i class="fa-solid fa-briefcase campo-ico" aria-hidden="true"></i>
+                        <input type="text" id="cadFuncao" list="listaFuncoes" autocomplete="organization-title" placeholder="ex.: Técnico(a) de campo">
+                    </div>
+                    <datalist id="listaFuncoes">
+                        <option value="Administração"></option>
+                        <option value="Técnico(a) de campo"></option>
+                        <option value="Zootecnista"></option>
+                        <option value="Veterinário(a)"></option>
+                        <option value="Produtor(a)"></option>
+                        <option value="Pesquisador(a)"></option>
+                        <option value="Visitante"></option>
+                    </datalist>
+                    <div class="campo">
+                        <label for="cadUser">Usuário</label>
+                        <i class="fa-solid fa-at campo-ico" aria-hidden="true"></i>
+                        <input type="text" id="cadUser" autocomplete="username" placeholder="3 a 24 caracteres">
+                    </div>
+                    <div class="campo">
+                        <label for="cadPass">Senha (mínimo 6 caracteres)</label>
+                        <i class="fa-solid fa-key campo-ico" aria-hidden="true"></i>
+                        <input type="password" id="cadPass" autocomplete="new-password" placeholder="senha">
+                        <button type="button" class="campo-revelar" data-alvo="cadPass" aria-label="Mostrar senha"><i class="fa-regular fa-eye"></i></button>
+                    </div>
+                    <div class="campo">
+                        <label for="cadPass2">Confirmar senha</label>
+                        <i class="fa-solid fa-key campo-ico" aria-hidden="true"></i>
+                        <input type="password" id="cadPass2" autocomplete="new-password" placeholder="repetir senha">
+                        <button type="button" class="campo-revelar" data-alvo="cadPass2" aria-label="Mostrar senha"><i class="fa-regular fa-eye"></i></button>
+                    </div>
+                </div>
+
+                <button id="loginBtn" onclick="entrar()">Entrar</button>
+                <div class="login-error" id="loginError" role="alert" aria-live="assertive"></div>
+                <div class="login-mode-badge modo-estatico" id="loginModeBadge">🧪 Modo local (sem servidor)</div>
+            </div>
         </div>
 
-        <div class="somente-cadastro">
-            <label for="cadNome">Nome completo</label>
-            <input type="text" id="cadNome" autocomplete="name" placeholder="ex.: Maria Souza">
-            <label for="cadEmail">E-mail</label>
-            <input type="email" id="cadEmail" autocomplete="email" placeholder="nome@exemplo.com">
-            <label for="cadFuncao">Função no aviário</label>
-            <input type="text" id="cadFuncao" list="listaFuncoes" autocomplete="organization-title" placeholder="ex.: Técnico(a) de campo">
-            <datalist id="listaFuncoes">
-                <option value="Administração"></option>
-                <option value="Técnico(a) de campo"></option>
-                <option value="Zootecnista"></option>
-                <option value="Veterinário(a)"></option>
-                <option value="Produtor(a)"></option>
-                <option value="Pesquisador(a)"></option>
-                <option value="Visitante"></option>
-            </datalist>
-            <label for="cadUser">Usuário</label>
-            <input type="text" id="cadUser" autocomplete="username" placeholder="3 a 24 caracteres">
-            <label for="cadPass">Senha (mínimo 6 caracteres)</label>
-            <input type="password" id="cadPass" autocomplete="new-password" placeholder="senha">
-            <label for="cadPass2">Confirmar senha</label>
-            <input type="password" id="cadPass2" autocomplete="new-password" placeholder="repetir senha">
-        </div>
-
-        <button id="loginBtn" onclick="entrar()">Entrar</button>
-        <div class="login-error" id="loginError" role="alert"></div>
-        <div class="login-toggle" id="loginToggle" onclick="alternarModoAcesso()">Criar conta</div>
-        <p class="login-admin-hint">
-            Administrador do sistema: <b>admin</b> / <b>admin</b> → painel de controle.
-            Os demais acessos são criados em <b>Criar conta</b> e entram na consola.
-        </p>
-        <div class="login-mode-badge modo-estatico" id="loginModeBadge">🧪 Modo local (sem servidor)</div>
     </div>
 </div>
 
@@ -369,6 +440,7 @@
 </div>
 </div>
 
+    <script src="js/theme.js"></script>
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/zoom.js"></script>

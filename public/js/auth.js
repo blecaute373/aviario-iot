@@ -120,29 +120,29 @@ function limparSessao() {
 }
 
 
-/* ── Tela de acesso (login ↔ cadastro na mesma caixa) ────────────── */
+/* ── Tela de acesso (Entrar ⇄ Registrar na mesma caixa) ──────────────
+   Título e subtítulo são fixos no HTML; aqui só mudam os campos visíveis,
+   o texto do botão principal e o estado das abas (aria-pressed). */
 function renderModoAcesso() {
   const caixa = document.getElementById('loginBox');
-  const titulo = document.getElementById('loginTitle');
-  const dica = document.getElementById('loginHint');
   const botao = document.getElementById('loginBtn');
-  const alternador = document.getElementById('loginToggle');
+  const abaEntrar = document.getElementById('loginTabEntrar');
+  const abaRegistrar = document.getElementById('loginToggle');
   const erro = document.getElementById('loginError');
   if (erro) erro.textContent = '';
   const cadastro = modoAcesso === 'cadastro';
   if (caixa) caixa.classList.toggle('modo-cadastro', cadastro);
-  if (titulo) titulo.textContent = cadastro ? 'Criar acesso' : 'AVIÁRIO IoT';
-  if (dica) {
-    dica.textContent = cadastro
-      ? 'Informe seus dados para acessar a consola de supervisão.'
-      : 'Entre com suas credenciais para continuar';
-  }
   if (botao) botao.textContent = cadastro ? 'Cadastrar e entrar' : 'Entrar';
-  if (alternador) alternador.textContent = cadastro ? 'Já tenho acesso — voltar ao login' : 'Criar conta';
+  if (abaEntrar) abaEntrar.setAttribute('aria-pressed', cadastro ? 'false' : 'true');
+  if (abaRegistrar) abaRegistrar.setAttribute('aria-pressed', cadastro ? 'true' : 'false');
 }
 
-function alternarModoAcesso() {
-  modoAcesso = modoAcesso === 'cadastro' ? 'login' : 'cadastro';
+/* Cada aba define o modo explicitamente (clicar na aba ativa não muda nada);
+   sem argumento apenas alterna — usado por chamadas antigas. */
+function alternarModoAcesso(modo) {
+  modoAcesso = modo === 'cadastro' || modo === 'login'
+    ? modo
+    : (modoAcesso === 'cadastro' ? 'login' : 'cadastro');
   renderModoAcesso();
 }
 
@@ -404,7 +404,7 @@ async function iniciarAcesso() {
     aviso('Acesso restrito: apenas o administrador entra no painel de controle.', 'erro');
   } else if (parametros.get('login') === 'admin') {
     /* /admin.html sem sessão é redirecionado por scripts/serve.js para cá */
-    aviso('O painel de controle exige a credencial do administrador (admin / admin).', 'erro');
+    aviso('Área administrativa: use uma conta com perfil de administrador para entrar no painel.', 'erro');
   }
   /* Foco inicial no usuário acelera o uso no teclado e no celular */
   setTimeout(() => {
@@ -448,6 +448,21 @@ window.AEREM_AUTH = {
   registrarAcessoLocal,
   aviso
 };
+
+/* Revelar/ocultar senha — botões .campo-revelar da tela de acesso
+   (só mexe no type do campo; não interfere na validação de entrar/cadastrar) */
+document.addEventListener('click', (evento) => {
+  const alvo = evento.target;
+  const botao = alvo && alvo.closest ? alvo.closest('.campo-revelar') : null;
+  if (!botao) return;
+  const campo = document.getElementById(botao.dataset.alvo || '');
+  if (!campo) return;
+  const visivel = campo.type === 'text';
+  campo.type = visivel ? 'password' : 'text';
+  botao.classList.toggle('ativo', !visivel);
+  botao.setAttribute('aria-label', visivel ? 'Mostrar senha' : 'Ocultar senha');
+  campo.focus();
+});
 
 iniciarAcesso();
 

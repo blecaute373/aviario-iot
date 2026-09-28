@@ -19,6 +19,7 @@ const ARQUIVOS_DASHBOARD = [
   'css/login.css',
   'css/dashboard.css',
   'css/control.css',
+  'js/theme.js',
   'js/config.js',
   'js/auth.js',
   'js/zoom.js',
@@ -57,7 +58,7 @@ test('páginas referenciam css/js/assets que existem', () => {
 });
 
 test('scripts JS do dashboard passam no node --check', () => {
-  const arquivos = ['config.js', 'auth.js', 'zoom.js', 'mock.js', 'api.js', 'ui.js', 'acessos.js', 'dashboard.js', 'admin.js'];
+  const arquivos = ['theme.js', 'config.js', 'auth.js', 'zoom.js', 'mock.js', 'api.js', 'ui.js', 'acessos.js', 'dashboard.js', 'admin.js'];
   for (const f of arquivos) {
     const r = spawnSync(process.execPath, ['--check', path.join(PUB, 'js', f)]);
     assert.equal(r.status, 0, f + ' falhou: ' + String(r.stderr));
@@ -181,5 +182,49 @@ test('acesso: front conversa com /api/auth/* e /api/admin/* (login local antigo 
   assert.ok(acessos.includes('/api/admin/acessos'), 'acessos.js não consulta o log de acessos');
   assert.ok(acessos.includes('/api/admin/usuarios'), 'acessos.js não consulta os usuários');
   assert.ok(!acessos.includes('CONTINUA'), 'acessos.js ficou incompleto (marcador de rascunho)');
+});
+
+test('acesso: a tela não exibe credenciais padrão', () => {
+  for (const pagina of ['index.html', 'admin.html']) {
+    const html = fs.readFileSync(path.join(PUB, pagina), 'utf8');
+    assert.ok(!html.includes('admin</b>'), pagina + ': dica de credencial (admin/admin) ainda visível');
+    assert.ok(!/\badmin\s*\/\s*admin\b/.test(html), pagina + ': credencial padrão visível na tela de acesso');
+  }
+  const auth = fs.readFileSync(path.join(PUB, 'js', 'auth.js'), 'utf8');
+  assert.ok(!auth.includes('admin / admin'), 'auth.js ainda cita a credencial padrão nos avisos');
+});
+
+test('acesso: tema claro/escuro (themeToggle + theme.js + anti-FOUC)', () => {
+  for (const pagina of ['index.html', 'admin.html']) {
+    const html = fs.readFileSync(path.join(PUB, pagina), 'utf8');
+    assert.ok(html.includes('id="themeToggle"'), pagina + ': botão de tema ausente');
+    assert.ok(html.includes('aria-pressed'), pagina + ': botão de tema sem aria-pressed');
+    assert.ok(html.includes('src="js/theme.js"'), pagina + ': js/theme.js não é carregado');
+    assert.ok(html.includes('data-tema-acesso'), pagina + ': anti-FOUC do tema ausente no <head>');
+  }
+  const tokens = fs.readFileSync(path.join(PUB, 'css', 'tokens.css'), 'utf8');
+  assert.ok(tokens.includes('data-tema="claro"'), 'tokens.css sem o bloco do tema claro');
+  assert.ok(tokens.includes('--lg-panel-ink'), 'tokens.css sem os tokens do painel de marca');
+
+  const theme = fs.readFileSync(path.join(PUB, 'js', 'theme.js'), 'utf8');
+  assert.ok(theme.includes("'aerem_tema'"), 'theme.js não usa a chave aerem_tema');
+  assert.ok(theme.includes('prefers-color-scheme'), 'theme.js não consulta o prefers-color-scheme');
+});
+
+test('acesso: layout split-screen (painel de marca + abas Entrar/Registrar)', () => {
+  for (const pagina of ['index.html', 'admin.html']) {
+    const html = fs.readFileSync(path.join(PUB, pagina), 'utf8');
+    assert.ok(html.includes('lg-painel'), pagina + ': painel de marca do split-screen ausente');
+    assert.ok(html.includes('lg-area-cartao'), pagina + ': coluna do cartão ausente');
+    assert.ok(html.includes('lg-tabs'), pagina + ': abas Entrar/Registrar ausentes');
+    assert.ok(html.includes("alternarModoAcesso('login')") && html.includes("alternarModoAcesso('cadastro')"),
+      pagina + ': abas sem modo explícito (clicar na aba ativa trocaria o modo)');
+  }
+  const auth = fs.readFileSync(path.join(PUB, 'js', 'auth.js'), 'utf8');
+  assert.ok(auth.includes('loginTabEntrar'), 'auth.js não sincroniza o estado das abas');
+
+  const css = fs.readFileSync(path.join(PUB, 'css', 'login.css'), 'utf8');
+  assert.ok(css.includes('.lg-tab-indicador'), 'login.css sem o indicador animado das abas');
+  assert.ok(css.includes('prefers-reduced-motion'), 'login.css sem prefers-reduced-motion');
 });
 

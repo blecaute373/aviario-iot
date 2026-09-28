@@ -1,103 +1,318 @@
 /* ═══════════════════════════════════════════════════════════════════
-   AVIÁRIO IoT · login.css — tela de acesso (login/registro local) e
-   modal de configuração de rede. Compartilhado pelas duas páginas.
+   AVIÁRIO IoT · login.css — tela de acesso split-screen (painel de marca
+   + cartão de entrada) e modal de configuração de rede. Compartilhado
+   por index.html (consola) e admin.html (painel de controle).
+   Tema claro/escuro vale SÓ nesta tela: a preferência fica em
+   localStorage['aerem_tema'] e o atributo data-tema no #loginScreen
+   (ver js/theme.js, o anti-FOUC no <head> e o bloco claro de tokens.css).
+   A consola e o painel permanecem sempre escuros nesta fase.
    ═══════════════════════════════════════════════════════════════════ */
 
-/* ── TELA DE LOGIN ──────────────────────────────────────────────── */
+/* ── Camada de fundo (escura por padrão) ─────────────────────────────── */
 #loginScreen {
   position: fixed; inset: 0; z-index: 2000; overflow: hidden;
-  display: flex; align-items: center; justify-content: center; padding: 20px;
   background:
-    radial-gradient(circle at 12% 12%, rgba(251, 146, 60, 0.20) 0%, transparent 45%),
-    radial-gradient(circle at 88% 18%, rgba(56, 189, 248, 0.16) 0%, transparent 45%),
-    radial-gradient(circle at 50% 96%, rgba(52, 211, 153, 0.12) 0%, transparent 50%),
-    linear-gradient(135deg, #060a12 0%, #0c1424 55%, #060a12 100%);
+    radial-gradient(1200px 640px at 6% 4%, rgba(251, 146, 60, 0.16), transparent 62%),
+    radial-gradient(1000px 620px at 94% 10%, rgba(56, 189, 248, 0.14), transparent 64%),
+    radial-gradient(960px 720px at 50% 112%, rgba(52, 211, 153, 0.10), transparent 62%),
+    linear-gradient(160deg, #05080f 0%, #0a1120 46%, #060a12 100%);
 }
 html.aerem-logged #loginScreen { display: none; }
 #loginScreen.hidden { display: none; }
+
+/* Grade técnica com vinheta — fica atrás de todo o conteúdo */
 #loginScreen::before {
-  content: ''; position: absolute; inset: 0; opacity: 0.07; pointer-events: none;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.5) 1px, transparent 1px);
-  background-size: 26px 26px;
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(122, 168, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(122, 168, 255, 0.055) 1px, transparent 1px);
+  background-size: 76px 76px;
+  -webkit-mask-image: radial-gradient(circle at 50% 42%, #000 26%, transparent 78%);
+  mask-image: radial-gradient(circle at 50% 42%, #000 26%, transparent 78%);
 }
+
+/* Auroras em movimento lento: dão profundidade ao fundo escuro */
+#loginScreen::after {
+  content: ''; position: absolute; inset: -14%; pointer-events: none; filter: blur(16px);
+  background:
+    radial-gradient(380px 380px at 16% 28%, rgba(251, 146, 60, 0.20), transparent 62%),
+    radial-gradient(420px 420px at 84% 20%, rgba(56, 189, 248, 0.18), transparent 64%),
+    radial-gradient(480px 480px at 64% 88%, rgba(52, 211, 153, 0.14), transparent 66%);
+  animation: lgAurora 30s ease-in-out infinite alternate;
+}
+
+/* ── Tema claro (só o fundo da tela de acesso) ───────────────────────── */
+#loginScreen[data-tema="claro"],
+html[data-tema-acesso="claro"] #loginScreen {
+  background:
+    radial-gradient(1000px 620px at 92% 6%, rgba(56, 189, 248, 0.12), transparent 62%),
+    linear-gradient(160deg, #f7fafc 0%, #eef2f8 54%, #e7eef7 100%);
+}
+#loginScreen[data-tema="claro"]::before,
+html[data-tema-acesso="claro"] #loginScreen::before {
+  background-image:
+    linear-gradient(rgba(13, 22, 38, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(13, 22, 38, 0.045) 1px, transparent 1px);
+}
+#loginScreen[data-tema="claro"]::after,
+html[data-tema-acesso="claro"] #loginScreen::after { display: none; }
+
+/* ── Grade principal: painel de marca (~50%) + cartão (~50%) ─────────── */
+.lg-split {
+  position: relative; z-index: 1; display: grid; height: 100%; min-height: 0;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+/* ── Painel de marca (coluna esquerda — sempre escuro, nos dois temas) ─ */
+.lg-painel {
+  position: relative; display: flex; flex-direction: column; justify-content: space-between;
+  gap: 28px; overflow: hidden; padding: 62px 56px 46px;
+  border-right: 1px solid var(--lg-chip-border);
+  background:
+    radial-gradient(560px 420px at 12% 8%, var(--lg-glow-brand), transparent 66%),
+    radial-gradient(620px 460px at 94% 16%, var(--lg-glow-info), transparent 68%),
+    linear-gradient(158deg, var(--lg-panel-1) 0%, var(--lg-panel-2) 52%, var(--lg-panel-3) 100%);
+  animation: lgEntra 0.6s var(--ease-out) both;
+}
+.lg-painel-conteudo { position: relative; z-index: 1; max-width: 32ch; }
+.lg-eyebrow {
+  font-family: var(--mono); font-size: 0.63rem; font-weight: 600;
+  letter-spacing: 0.24em; text-transform: uppercase; color: var(--lg-eyebrow);
+}
+.lg-titulo {
+  margin-top: 16px; font-size: clamp(1.85rem, 3.1vw, 2.7rem); font-weight: 800;
+  line-height: 1.1; letter-spacing: -0.03em; color: var(--lg-panel-ink);
+}
+.lg-desc { margin-top: 14px; font-size: 0.88rem; line-height: 1.68; color: var(--lg-panel-ink-2); }
+.lg-decor {
+  position: absolute; right: -26px; bottom: 42px; width: min(64%, 340px);
+  color: var(--lg-decor); pointer-events: none;
+}
+.lg-chips { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 10px; }
+.lg-chip {
+  display: inline-flex; align-items: baseline; gap: 7px; padding: 8px 15px;
+  border-radius: var(--r-pill); border: 1px solid var(--lg-chip-border); background: var(--lg-chip-bg);
+  font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--lg-panel-ink-2);
+}
+.lg-chip b { font-size: 0.72rem; letter-spacing: 0.08em; color: var(--lg-panel-ink); }
+
+/* ── Coluna do cartão (rolagem própria em telas baixas) ──────────────── */
+.lg-area-cartao {
+  display: flex; overflow: hidden auto; padding: 44px 34px; background: var(--lg-canvas);
+}
+
+/* ── Cartão de acesso ─────────────────────────────────────────────────── */
 .login-box {
-  position: relative; z-index: 1; width: 100%; max-width: 380px;
-  background: linear-gradient(180deg, rgba(24, 36, 58, 0.88), rgba(14, 22, 38, 0.9));
-  border: 1px solid var(--border-2); border-radius: var(--r-xl);
-  padding: 38px 30px; text-align: center;
-  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-  box-shadow: var(--shadow-lg), 0 0 70px rgba(251, 146, 60, 0.08);
-  animation: loginPop 0.45s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
+  position: relative; z-index: 1; margin: auto; width: 100%; max-width: 424px;
+  padding: 34px 30px 26px; border-radius: var(--r-xl); text-align: center; overflow: hidden;
+  border: 1px solid var(--border-2);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-solid));
+  -webkit-backdrop-filter: blur(20px) saturate(130%); backdrop-filter: blur(20px) saturate(130%);
+  box-shadow: var(--shadow-lg), 0 0 90px rgba(251, 146, 60, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: lgEntra 0.6s var(--ease-out) both;
 }
+/* Borda luminosa: gradiente recortado na espessura de 1 px */
 .login-box::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--brand), var(--umid), transparent);
+  content: ''; position: absolute; inset: 0; padding: 1px; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(150deg, rgba(251, 146, 60, 0.55), rgba(56, 189, 248, 0.30) 42%, rgba(255, 255, 255, 0.04) 74%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
 }
-@keyframes loginPop { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: none; } }
-.login-box .aerem-logo {
-  height: 68px; width: auto; margin-bottom: 14px;
-  filter: drop-shadow(0 4px 18px rgba(251, 146, 60, 0.4));
+/* Fita de energia no topo do cartão */
+.login-box::after {
+  content: ''; position: absolute; top: 0; left: 16%; right: 16%; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--brand), var(--info), transparent);
 }
-.login-box h1 {
-  font-size: 1.4rem; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.02em;
-  background: linear-gradient(120deg, var(--brand), var(--warn) 45%, #ffd7a8);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+
+/* ── Botão de tema claro/escuro (canto superior direito do cartão) ───── */
+.lg-tema {
+  position: absolute; top: 12px; right: 12px; z-index: 2; width: 36px; height: 36px;
+  display: grid; place-items: center; cursor: pointer;
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: var(--lg-tab-bg); color: var(--text-2); font-size: 0.82rem;
+  transition: color var(--dur-1), border-color var(--dur-1), background var(--dur-1), transform var(--dur-1);
 }
-.login-box p.hint { color: var(--text-2); font-size: 0.8rem; margin-bottom: 24px; }
-.login-box label {
-  display: block; font-size: 0.66rem; color: var(--brand); margin: 14px 0 6px;
-  text-align: left; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+.lg-tema:hover { color: var(--brand-ink); border-color: var(--border-strong); transform: translateY(-1px); }
+.lg-tema .lg-tema-sol { display: none; }
+#loginScreen[data-tema="claro"] .lg-tema .lg-tema-sol,
+html[data-tema-acesso="claro"] #loginScreen .lg-tema .lg-tema-sol { display: inline-block; }
+#loginScreen[data-tema="claro"] .lg-tema .lg-tema-lua,
+html[data-tema-acesso="claro"] #loginScreen .lg-tema .lg-tema-lua { display: none; }
+
+/* ── Cabeçalho do cartão (logo + marca + subtítulo mono) ─────────────── */
+.lg-cabeca { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; }
+.lg-logo { position: relative; display: grid; place-items: center; margin-bottom: 12px; }
+.lg-logo::before {
+  content: ''; position: absolute; inset: 0; margin: auto; width: 108px; height: 108px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(251, 146, 60, 0.24), transparent 68%);
+  animation: lgPulsa 4.4s ease-in-out infinite;
 }
+.lg-cabeca .aerem-logo { position: relative; height: 58px; width: auto; filter: drop-shadow(0 8px 22px rgba(251, 146, 60, 0.38)); }
+.lg-cabeca h1 {
+  font-size: 1.34rem; font-weight: 800; letter-spacing: 0.01em;
+  background: linear-gradient(115deg, var(--brand), var(--warn) 48%, #ffe3c2);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+#loginScreen[data-tema="claro"] .lg-cabeca h1,
+html[data-tema-acesso="claro"] #loginScreen .lg-cabeca h1 {
+  background: linear-gradient(115deg, #c2410c, #ea580c 52%, #b45309);
+  -webkit-background-clip: text; background-clip: text;
+}
+.lg-subtitulo-mono {
+  margin-top: 7px; font-family: var(--mono); font-size: 0.62rem; font-weight: 500;
+  letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-2);
+}
+
+/* ── Abas Entrar ⇄ Registrar (segmented control com indicador animado) ── */
+.lg-tabs {
+  position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 4px; border: 1px solid var(--border); border-radius: var(--r-pill); background: var(--lg-tab-bg);
+}
+.lg-tab-indicador {
+  position: absolute; top: 4px; left: 4px; width: calc(50% - 4px); height: calc(100% - 8px);
+  border-radius: var(--r-pill); background: var(--lg-tab-indicador); box-shadow: var(--shadow-sm);
+  transition: transform var(--dur-2) var(--ease-out);
+}
+.login-box.modo-cadastro .lg-tab-indicador { transform: translateX(100%); }
+.lg-tab {
+  position: relative; z-index: 1; padding: 10px 12px; border: none; background: transparent;
+  border-radius: var(--r-pill); cursor: pointer; color: var(--text-2);
+  font-family: var(--mono); font-size: 0.63rem; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  transition: color var(--dur-1);
+}
+.lg-tab[aria-pressed="true"] { color: var(--text); font-weight: 700; }
+.lg-tab:hover { color: var(--text); }
+
+/* ── Campos (ícone à esquerda + revelar senha à direita) ─────────────── */
+.campo { position: relative; margin-top: 13px; text-align: left; }
+.campo label {
+  display: block; margin-bottom: 7px; font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--brand-ink);
+}
+.campo-ico {
+  position: absolute; left: 13px; bottom: 0; width: 18px; height: 46px; display: grid; place-items: center;
+  font-size: 0.82rem; color: var(--muted); pointer-events: none; transition: color var(--dur-1);
+}
+.campo:focus-within .campo-ico { color: var(--brand-ink); }
 .login-box input {
-  width: 100%; padding: 12px 14px; border-radius: var(--r-sm);
-  border: 1px solid var(--border-2); background: rgba(255, 255, 255, 0.04);
-  color: var(--text); font-size: 0.9rem; font-family: var(--sans);
+  width: 100%; height: 46px; padding: 0 46px 0 40px; border-radius: var(--r-md);
+  border: 1px solid var(--border-2); background: var(--inset);
+  color: var(--text); font-family: var(--sans); font-size: 0.9rem;
   transition: border-color var(--dur-1), background var(--dur-1), box-shadow var(--dur-1);
 }
-.login-box input:focus {
-  outline: none; border-color: var(--brand); background: rgba(255, 255, 255, 0.07);
-  box-shadow: var(--glow-soft);
+.login-box input::placeholder { color: var(--muted); opacity: 0.9; }
+.login-box input:hover { border-color: var(--border-strong); }
+.login-box input:focus { outline: none; border-color: var(--brand); box-shadow: var(--glow-soft); }
+.campo-revelar {
+  position: absolute; right: 7px; bottom: 6px; width: 34px; height: 34px; display: grid; place-items: center;
+  border: none; border-radius: var(--r-sm); background: transparent; color: var(--muted);
+  font-size: 0.82rem; cursor: pointer; transition: color var(--dur-1), background var(--dur-1);
 }
-.login-box button {
-  width: 100%; margin-top: 24px; padding: 12px; border-radius: var(--r-sm); border: none;
-  background: linear-gradient(135deg, var(--brand), var(--brand-3)); color: #fff;
-  font-weight: 800; cursor: pointer; font-size: 0.9rem; letter-spacing: 0.02em;
-  box-shadow: 0 8px 24px rgba(249, 115, 22, 0.32);
-  transition: transform var(--dur-1), box-shadow var(--dur-1);
-}
-.login-box button:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(249, 115, 22, 0.42); }
-.login-box button:active { transform: translateY(0); }
-.login-error { color: var(--crit); font-size: 0.76rem; margin-top: 12px; min-height: 14px; }
-.login-toggle {
-  margin-top: 16px; font-size: 0.76rem; color: var(--text-2); cursor: pointer;
-  border-bottom: 1px dashed var(--muted-2); display: inline-block; padding-bottom: 1px;
-  transition: color var(--dur-1), border-color var(--dur-1);
-}
-.login-toggle:hover { color: var(--brand); border-color: var(--brand); }
-.login-box button:disabled { opacity: 0.6; cursor: progress; }
+.campo-revelar:hover { color: var(--text); background: var(--lg-tab-bg); }
+.campo-revelar.ativo { color: var(--brand-ink); }
 
-/* Campos exclusivos do cadastro (modo "Criar conta") */
-.login-box .somente-cadastro { display: none; }
-.login-box.modo-cadastro .somente-cadastro { display: block; }
-.login-box.modo-cadastro .somente-login { display: none; }
-/* O cadastro é mais alto: a tela passa a rolar em aparelhos baixos */
-#loginScreen { overflow-y: auto; padding: 28px 20px; }
-
-/* Dica fixa sobre a credencial pré-configurada do administrador */
-.login-admin-hint {
-  margin-top: 16px; font-size: 0.68rem; line-height: 1.55; color: var(--muted);
-  border-top: 1px dashed var(--border-2); padding-top: 12px;
+/* ── Botão principal (o texto vem de js/auth.js; CAPS e estilo, do CSS) ── */
+#loginBtn {
+  position: relative; overflow: hidden; width: 100%; height: 48px; margin-top: 24px;
+  border: none; border-radius: var(--r-md); color: var(--on-accent); cursor: pointer;
+  font-family: var(--mono); font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  background: linear-gradient(135deg, var(--brand-2), var(--brand) 46%, var(--brand-3));
+  box-shadow: 0 12px 30px rgba(249, 115, 22, 0.30), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transition: transform var(--dur-1), box-shadow var(--dur-1), filter var(--dur-1);
 }
-.login-admin-hint b { color: var(--text-2); font-family: var(--mono); }
+#loginBtn::after {
+  content: ''; position: absolute; top: -60%; bottom: -60%; left: -45%; width: 42px; opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.34), transparent);
+  transform: skewX(-18deg);
+}
+#loginBtn:hover { transform: translateY(-1px); box-shadow: 0 16px 38px rgba(249, 115, 22, 0.42); filter: saturate(112%); }
+#loginBtn:hover::after { opacity: 1; animation: lgBrilho 0.9s var(--ease-out); }
+#loginBtn:active { transform: translateY(1px); }
+#loginBtn[disabled] { opacity: 0.82; cursor: progress; }
+#loginBtn[disabled]::after {
+  top: 50%; left: auto; right: 18px; width: 16px; height: 16px; margin-top: -8px; opacity: 1;
+  transform: none; border-radius: 50%; background: none;
+  border: 2px solid rgba(255, 255, 255, 0.35); border-top-color: #fff;
+  animation: lgGira 0.7s linear infinite;
+}
 
-/* Selo do modo de armazenamento (servidor de acesso ou demonstração) */
-.login-mode-badge { margin-top: 10px; font-size: 0.62rem; font-family: var(--mono); color: var(--muted); }
-.login-mode-badge.modo-servidor { color: var(--ok); }
+/* ── Erro: só ocupa espaço quando existe mensagem ────────────────────── */
+.login-error:not(:empty) {
+  display: flex; align-items: center; gap: 9px; margin-top: 14px; padding: 10px 14px;
+  border-radius: var(--r-sm); font-size: 0.78rem; font-weight: 600; text-align: left;
+  color: var(--crit); background: rgba(248, 113, 113, 0.10); border: 1px solid rgba(248, 113, 113, 0.34);
+  animation: lgTrema 0.42s var(--ease-out) both;
+}
+.login-error:not(:empty)::before { content: '\f071'; font-family: 'Font Awesome 6 Free'; font-weight: 900; }
+
+/* ── Selo do modo de armazenamento (servidor de acesso ou demo) ──────── */
+.login-mode-badge {
+  display: flex; align-items: center; gap: 9px; margin-top: 12px; padding: 7px 13px;
+  border-radius: var(--r-pill); font-family: var(--mono); font-size: 0.61rem; line-height: 1.4;
+  text-align: left; color: var(--muted); border: 1px solid var(--border); background: var(--lg-tab-bg);
+}
+.login-mode-badge::before {
+  content: ''; flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%;
+  background: currentColor; box-shadow: 0 0 10px currentColor; animation: lgPulsa 2.4s ease-in-out infinite;
+}
+.login-mode-badge.modo-servidor { color: var(--ok); border-color: rgba(52, 211, 153, 0.32); background: rgba(52, 211, 153, 0.08); }
 .login-mode-badge.modo-demo-nuvem,
-.login-mode-badge.modo-estatico { color: var(--warn); }
+.login-mode-badge.modo-estatico { color: var(--warn); border-color: rgba(251, 191, 36, 0.28); background: rgba(251, 191, 36, 0.07); }
 
-/* Avisos flutuantes (entrada, saída, área restrita) — usados nas duas páginas */
+/* ── Telas estreitas (< 900 px): painel vira faixa compacta e só o cartão
+      permanece em cena (centralizado, com rolagem própria) ─────────────── */
+@media (max-width: 899px) {
+  .lg-split { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .lg-painel {
+    gap: 12px; padding: 22px 20px 18px;
+    border-right: none; border-bottom: 1px solid var(--lg-chip-border);
+  }
+  .lg-painel-conteudo { max-width: none; }
+  .lg-titulo { margin-top: 8px; font-size: 1.32rem; }
+  .lg-desc, .lg-decor, .lg-chips { display: none; }
+  .lg-area-cartao { padding: 22px 16px 30px; }
+}
+@media (max-width: 520px) {
+  .login-box { padding: 28px 20px 22px; border-radius: var(--r-lg); }
+  .lg-cabeca .aerem-logo { height: 52px; }
+  .lg-logo::before { width: 92px; height: 92px; }
+  .lg-cabeca h1 { font-size: 1.2rem; }
+}
+
+/* ── Foco visível (teclado) em todos os controles da tela de acesso ──── */
+#loginScreen :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+#loginScreen input:focus-visible { outline: none; }
+
+/* ── Movimento ───────────────────────────────────────────────────────── */
+@keyframes lgAurora {
+  from { transform: translate3d(-1.5%, -1%, 0) scale(1); }
+  50% { transform: translate3d(1.5%, 1.5%, 0) scale(1.06); }
+  to { transform: translate3d(-1%, 2%, 0) scale(1.02); }
+}
+@keyframes lgEntra { from { opacity: 0; transform: translateY(16px) scale(0.99); } to { opacity: 1; transform: none; } }
+@keyframes lgPulsa { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+@keyframes lgBrilho { from { left: -45%; } to { left: 118%; } }
+@keyframes lgGira { to { transform: rotate(360deg); } }
+@keyframes lgTrema {
+  0%, 100% { transform: translateX(0); }
+  22% { transform: translateX(-5px); }
+  48% { transform: translateX(4px); }
+  74% { transform: translateX(-2px); }
+}
+@keyframes loginPop { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  #loginScreen::after, .lg-painel, .login-box, .lg-logo::before,
+  .login-mode-badge::before, .login-error:not(:empty) { animation: none !important; }
+  .lg-tab-indicador, .lg-tema, #loginBtn { transition: none !important; }
+  #loginBtn:hover::after { animation: none !important; opacity: 0 !important; }
+}
+
+/* ── Avisos flutuantes (entrada, saída, área restrita) ───────────────── */
 .auth-notice {
   position: fixed; top: 18px; left: 50%; transform: translate(-50%, -24px);
   z-index: 3000; max-width: min(92vw, 620px); padding: 11px 18px;
@@ -112,7 +327,8 @@ html.aerem-logged #loginScreen { display: none; }
   background: rgba(248, 113, 113, 0.14); border-color: rgba(248, 113, 113, 0.45); color: var(--crit);
 }
 
-/* ── MODAL DE CONFIGURAÇÃO ──────────────────────────────────────── */
+
+/* ── MODAL DE CONFIGURAÇÃO DE REDE (usado por js/config.js) ──────────── */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(4, 7, 12, 0.78);
   backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
@@ -145,3 +361,4 @@ html.aerem-logged #loginScreen { display: none; }
 .modal-btn-secondary { background: transparent; color: var(--text-2); border: 1px solid var(--border-2) !important; }
 .modal-actions button:hover { opacity: 0.86; }
 .modal-error { color: var(--crit); font-size: 0.76rem; margin-top: 10px; min-height: 14px; }
+

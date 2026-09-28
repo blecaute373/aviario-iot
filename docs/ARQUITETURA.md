@@ -1,6 +1,8 @@
 # Arquitetura
 
 > Atualizado a partir do código-fonte real dos 3 nós (`firmware/`) e da config de backend (`backend/`).
+>
+> ⚠️ **Arquitetura vigente:** a descrição dos "3 nós" abaixo corresponde aos firmwares `firmware/gateway-esp32/` e `firmware/no-atuador-esp32/`. O nó em operação hoje é **um único ESP32 (gateway + atuador) sem hop LoRa intermediário** — `firmware/gateway-atuador-esp32/` —, com LCD 16×2 e relés via PCF8574; **apenas V1 (ventilador 1) está instalado**, e a proteção de NH₃ de V1 é failsafe do firmware em qualquer modo. Ver [`ADR-0004`](ADR-0004-no-unico-gateway-atuador.md) e o contrato de comando em [`PROTOCOLO.md`](PROTOCOLO.md).
 
 ## Objetivo
 
