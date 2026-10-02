@@ -11,6 +11,6 @@
     "audit": "npm audit --audit-level=high"
   },
   "optionalDependencies": {
-    "mongodb": "^7.6.0"
+    "mongodb": "^7.7.0"
   }
 }
